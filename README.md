@@ -1,25 +1,27 @@
-# Hello Sensor app
+# BLE Hello Sensor Sample application
 
 ## Overview
 
-This is a BLE Vendor Specific Device. During initialization the app registers with LE stack to receive various notifications including bonding complete, connection status change and peer write.  When device is successfully bonded, application saves peer's Bluetooth Device address to the NVRAM. Bonded device can also write in to client configuration descriptor of the notification characteristic.  That is also saved in the NVRAM.  When user pushes the button, notification/indication is sent to the bonded and registered host. User can also write to the characteristic configuration value. Number of LED blinks indicates the value written.
+This application demonstrates a BLE Vendor Specific Device. During initialization, the app registers with the LE stack to receive notifications, including bonding complete, connection status change, and peer write.  When a device is successfully bonded, the application saves the peer's Bluetooth Device address to its NVRAM. Bonded devices can also write in to the client configuration descriptor of the notification characteristic.  That is also saved in the device's NVRAM.  When the user pushes the button, notification/indication is sent to the bonded and registered host. The user can also write to the characteristic configuration value. The number of LED blinks on the board indicates the value written.
 
 ## Features demonstrated
-- GATT database and Device configuration initialization
-- Registration with LE stack for various events
-- NVRAM read/write operation
+- GATT database and device configuration initialization
+- Registration with the LE stack for various events
+- NVRAM read/write operations
 - Sending data to the client
 - Processing write requests from the client
 
 ## Instructions
-To demonstrate the app, work through the following steps.
-1. Plug the WICED eval board into your computer
-2. Build and download the application (to the WICED board)
-3. Pair with client.
-4. On the client side register for notifications
-5. Push a button on the tag to send notifications to the client
-6. Write the hello sensor characteristic configuration value from client
-7. Number of LED blinks on hello sensor indicates value written by client
+To demonstrate the app, work through the following steps:
+
+1. Plug the WICED eval board into your computer.
+2. Build and download the application to the WICED board.
+3. Pair with a client.
+4. On the client side, register for notifications.
+5. Push a button on the board to send notifications to the client.
+6. Write the hello sensor characteristic configuration value from the client.
+7. The number of LED blinks on the hello sensor device indicates value written by the client.
+8. For 20721B2 based WICED kits, use the Custom button on audio shield board as application button rather than the button on the base board.
 
 ## Additional Notes:
 The default configuration for the CYW920721B2EVK-03 platform has no GPIO    assigned for LED1. To use this application with LED output, an application-specific design.modus is used to free GPIO P28 from the I2S interface and configure it as an LED with index = 1, output, default=High.
@@ -29,7 +31,7 @@ The default configuration for the CYW920721B2EVK-03 platform has no GPIO    assi
 Application settings below are common for all BTSDK applications and can be configured via the makefile of the application or passed in via the command line.
 
 - BT\_DEVICE\_ADDRESS<br/>
-    - Set the BDA (Bluetooth Device Address) for your device. The BT address is 6 bytes, for example, 20819A10FFEE. By default, the SDK will set a BDA for your device by combining the 7 hex digit device ID with the last 5 hex digits of the host PC MAC address.
+    - Set the BDA (Bluetooth Device Address) for your device. The address is 6 bytes, for example, 20819A10FFEE. By default, the SDK will set a BDA for your device by combining the 7 hex digit device ID with the last 5 hex digits of the host PC MAC address.
 
 - UART<br/>
     - Set to the UART port you want to use to download the application. For example 'COM6' on Windows or '/dev/ttyWICED\_HCI\_UART0' on Linux or '/dev/tty.usbserial-000154' on macOS. By default, the SDK will auto-detect the port.
@@ -37,15 +39,20 @@ Application settings below are common for all BTSDK applications and can be conf
 - ENABLE_DEBUG<br/>
     - For HW debugging, select the option '1'. See the document [WICED-Hardware-Debugging](https://github.com/cypresssemiconductorco/btsdk-docs/blob/master/docs/BT-SDK/WICED-Hardware-Debugging.pdf) for more information. This setting configures GPIO for SWD.
       - CYW920819EVB-02/CYW920820EVB-02: SWD signals are shared with D4 and D5, see SW9 in schematics.
-      - CYBT-213043-MESH/CYBT-213043-EVAL: SWD signals are routed to P12=SWDCK and P13=SWDIO. Use expansion connectors to connect VDD, GND, SWDCK, and SWDIO to your SWD Debugger probe.
+      - CYBT-213043-MESH/CYBT-213043-EVAL : SWD signals are routed to P02=SWDCK and P03=SWDIO. Use expansion connectors to connect VDD, GND, SWDCK, and SWDIO to your SWD Debugger probe.
+	  - CYBT-223058-EVAL : SWD signals are routed to P02=SWDCK and P03=SWDIO. Use expansion connectors to connect VDD, GND, SWDCK, and SWDIO to your SWD Debugger probe.
+	  - CYBT-243053-EVAL: SWD signals are routed to P12=SWDCK and P13=SWDIO. Use expansion connectors to connect VDD, GND, SWDCK, and SWDIO to your SWD Debugger probe.
+	  - CYBT-253059-EVAL: SWD signals are routed to P12=SWDCK and P13=SWDIO. Use expansion connectors to connect VDD, GND, SWDCK, and SWDIO to your SWD Debugger probe.
       - CYW989820EVB-01: SWDCK (P02) is routed to the J13 DEBUG connector, but not SWDIO. Add a wire from J10 pin 3 (PUART CTS) to J13 pin 2 to connect GPIO P10 to SWDIO.
       - CYW920719B2Q40EVB-01: PUART RX/TX signals are shared with SWDCK and SWDIO. Remove RX and TX jumpers on J10 when using SWD. PUART and SWD cannot be used simultaneously on this board unless these pins are changed from the default configuration.
       - CYW920721B2EVK-02: SWD hardware debugging supported. SWD signals are shared with D4 and D5, see SW9 in schematics.
-      - CYW920721B2EVK-03: SWD hardware debugging is not supported.
+      - CYW920721B2EVK-03, CYW920721M2EVK-01: SWD hardware debugging is not supported.
+      - CYW920721M2EVK-02: SWD hardware debugging is supported. The default setup uses P03 for SWDIO and P05 for SWDCK.
       - CYW920706WCDEVAL: SWD debugging requires fly-wire connections. The default setup uses P15 (J22 pin 3) for SWDIO and P30 (J19 pin 2) for SWDCK. P30 is shared with BTN1.
       - CYW920735Q60EVB-01: SWD hardware debugging supported. The default setup uses the J13 debug header, P3 (J13 pin 2) for SWDIO and P2 (J13 pin 4) for SWDCK.  They can be optionally routed to D4 and D4 on the Arduino header J4, see SW9 in schematics.
       - CYW920835REF-RCU-01: SWD hardware debugging is not supported.
       - CYW9M2BASE-43012BT: SWD hardware debugging is not supported.
+      - CYW943012BTEVK-01: SWD hardware debugging is not supported.
 
 ## Building code examples
 
@@ -92,20 +99,20 @@ Note: this is only applicable to boards that download application images to FLAS
 
 ## SDK software features
 
-- Dual-mode Bluetooth stack included in the ROM (BR/EDR and BLE)
-- BT stack and profile level APIs for embedded BT application development
+- Dual-mode Bluetooth stack included in the ROM (BR/EDR and LE)
+- Bluetooth stack and profile level APIs for embedded Bluetooth application development
 - WICED HCI protocol to simplify host/MCU application development
 - APIs and drivers to access on-board peripherals
-- Bluetooth protocols include GAP, GATT, SMP, RFCOMM, SDP, AVDT/AVCT, BLE Mesh
-- BLE and BR/EDR profile APIs, libraries, and sample apps
+- Bluetooth protocols include GAP, GATT, SMP, RFCOMM, SDP, AVDT/AVCT, LE Mesh
+- LE and BR/EDR profile APIs, libraries, and sample apps
 - Support for Over-The-Air (OTA) upgrade
 - Device Configurator for creating custom pin mapping
-- Bluetooth Configurator for creating BLE GATT Database
+- Bluetooth Configurator for creating LE GATT Database
 - Peer apps based on Android, iOS, Windows, etc. for testing and reference
 - Utilities for protocol tracing, manufacturing testing, etc.
 - Documentation for APIs, datasheets, profiles, and features
 - BR/EDR profiles: A2DP, AVRCP, HFP, HSP, HID, SPP, MAP, PBAP, OPP
-- BLE profiles: Mesh profiles, HOGP, ANP, BAP, HRP, FMP, IAS, ESP, LE COC
+- LE profiles: Mesh profiles, HOGP, ANP, BAP, HRP, FMP, IAS, ESP, LE COC
 - Apple support: Apple Media Service (AMS), Apple Notification Center Service (ANCS), iBeacon, Homekit, iAP2
 - Google support: Google Fast Pair Service (GFPS), Eddystone
 - Amazon support: Alexa Mobile Accessories (AMA)
@@ -114,14 +121,22 @@ Note: this is a list of all features and profiles supported in BTSDK, but some W
 
 ## List of boards available for use with BTSDK
 
-- CYW20819A1 chip: CYW920819EVB-02, CYBT-213043-MESH, CYBT-213043-EVAL, CYW920819REF-KB-01
-- CYW20820A1 chip: CYW920820EVB-02, CYW989820EVB-01
-- CYW20721B2 chip: CYW920721B2EVK-02, CYW920721B2EVK-03, CYW920721M2EVK-01, CYW920721M2EVK-02, CYBT-423060-EVAL, CYBT-483062-EVAL, CYBT-413061-EVAL
-- CYW20719B2 chip: CYW920719B2Q40EVB-01, CYBT-423054-EVAL, CYBT-413055-EVAL, CYBT-483056-EVAL
-- CYW20706A2 chip: CYW920706WCDEVAL, CYBT-353027-EVAL, CYBT-343026-EVAL
-- CYW20735B1 chip: CYW920735Q60EVB-01
-- CYW20835B1 chip: CYW920835REF-RCU-01
-- CYW43012C0 chip: CYW9M2BASE-43012BT, CYW9M2BASE-43012BT20
+- [CYW20819A1 chip](https://github.com/cypresssemiconductorco/20819A1)
+    - [CYW920819EVB-02](https://github.com/cypresssemiconductorco/TARGET_CYW920819EVB-02), [CYBT-213043-MESH](https://github.com/cypresssemiconductorco/TARGET_CYBT-213043-MESH), [CYBT-213043-EVAL](https://github.com/cypresssemiconductorco/TARGET_CYBT-213043-EVAL), [CYW920819REF-KB-01](https://github.com/cypresssemiconductorco/TARGET_CYW920819REF-KB-01)
+- [CYW20820A1 chip](https://github.com/cypresssemiconductorco/20820A1)
+    - [CYW920820EVB-02](https://github.com/cypresssemiconductorco/TARGET_CYW920820EVB-02), [CYW989820EVB-01](https://github.com/cypresssemiconductorco/TARGET_CYW989820EVB-01), [CYBT-243053-EVAL](https://github.com/cypresssemiconductorco/TARGET_CYBT-243053-EVAL)
+- [CYW20721B2 chip](https://github.com/cypresssemiconductorco/20721B2)
+    - [CYW920721B2EVK-02](https://github.com/cypresssemiconductorco/TARGET_CYW920721B2EVK-02), [CYW920721B2EVK-03](https://github.com/cypresssemiconductorco/TARGET_CYW920721B2EVK-03), [CYW920721M2EVK-01](https://github.com/cypresssemiconductorco/TARGET_CYW920721M2EVK-01), [CYW920721M2EVK-02](https://github.com/cypresssemiconductorco/TARGET_CYW920721M2EVK-02), [CYBT-423060-EVAL](https://github.com/cypresssemiconductorco/TARGET_CYBT-423060-EVAL), [CYBT-483062-EVAL](https://github.com/cypresssemiconductorco/TARGET_CYBT-483062-EVAL), [CYBT-413061-EVAL](https://github.com/cypresssemiconductorco/TARGET_CYBT-413061-EVAL)
+- [CYW20719B2 chip](https://github.com/cypresssemiconductorco/20719B2)
+    - [CYW920719B2Q40EVB-01](https://github.com/cypresssemiconductorco/TARGET_CYW920719B2Q40EVB-01), [CYBT-423054-EVAL](https://github.com/cypresssemiconductorco/TARGET_CYBT-423054-EVAL), [CYBT-413055-EVAL](https://github.com/cypresssemiconductorco/TARGET_CYBT-413055-EVAL), [CYBT-483056-EVAL](https://github.com/cypresssemiconductorco/TARGET_CYBT-483056-EVAL)
+- [CYW20706A2 chip](https://github.com/cypresssemiconductorco/20706A2)
+    - [CYW920706WCDEVAL](https://github.com/cypresssemiconductorco/TARGET_CYW920706WCDEVAL), [CYBT-353027-EVAL](https://github.com/cypresssemiconductorco/TARGET_CYBT-353027-EVAL), [CYBT-343026-EVAL](https://github.com/cypresssemiconductorco/TARGET_CYBT-343026-EVAL)
+- [CYW20735B1 chip](https://github.com/cypresssemiconductorco/20735B1)
+    - [CYW920735Q60EVB-01](https://github.com/cypresssemiconductorco/TARGET_CYW920735Q60EVB-01)
+- [CYW20835B1 chip](https://github.com/cypresssemiconductorco/20835B1)
+    - [CYW920835REF-RCU-01](https://github.com/cypresssemiconductorco/TARGET_CYW920835REF-RCU-01)
+- [CYW43012C0 chip](https://github.com/cypresssemiconductorco/43012C0)
+    - [CYW9M2BASE-43012BT](https://github.com/cypresssemiconductorco/TARGET_CYW9M2BASE-43012BT), [CYW943012BTEVK-01](https://github.com/cypresssemiconductorco/TARGET_CYW943012BTEVK-01)
 
 ## Folder structure
 
@@ -129,7 +144,7 @@ All BTSDK code examples need the 'mtb\_shared\wiced\_btsdk' folder to build and 
 
 **dev-kit**
 
-This folder contains the files that are needed to build the embedded BT apps.
+This folder contains the files that are needed to build the embedded Bluetooth apps.
 
 * baselib: Files for chips supported by BTSDK. For example CYW20819, CYW20719, CYW20706, etc.
 
@@ -139,17 +154,17 @@ This folder contains the files that are needed to build the embedded BT apps.
 
 * btsdk-tools: Build tools needed by BTSDK.
 
-* libraries: Profile libraries used by BTSDK apps such as audio, BLE, HID, etc.
+* libraries: Profile libraries used by BTSDK apps such as audio, LE, HID, etc.
 
 **tools**
 
-This folder contains tools and utilities need to test the embedded BT apps.
+This folder contains tools and utilities need to test the embedded Bluetooth apps.
 
-* btsdk-host-apps-bt-ble: Host apps (Client Control) for BLE and BR/EDR embedded apps, demonstrates the use of WICED HCI protocol to control embedded apps.
+* btsdk-host-apps-bt-ble: Host apps (Client Control) for LE and BR/EDR embedded apps, demonstrates the use of WICED HCI protocol to control embedded apps.
 
 * btsdk-host-peer-apps-mesh: Host apps (Client Control) and Peer apps for embedded Mesh apps, demonstrates the use of WICED HCI protocol to control embedded apps, and configuration and provisioning from peer devices.
 
-* btsdk-peer-apps-ble: Peer apps for embedded BLE apps.
+* btsdk-peer-apps-ble: Peer apps for embedded LE apps.
 
 * btsdk-peer-apps-ota: Peer apps for embedded apps that support Over The Air Firmware Upgrade.
 
@@ -164,7 +179,7 @@ Source code generation tools installed by ModusToolbox installer:
 - Device Configurator:
       A GUI tool to create custom pin mappings for your device.
 - Bluetooth Configurator:
-      A GUI tool to create and configure the BLE GATT Database and BR/EDR SDP records for your application.
+      A GUI tool to create and configure the LE GATT Database and BR/EDR SDP records for your application.
 
 ## Using BSPs (platforms)
 

@@ -1,10 +1,10 @@
 /*
- * Copyright 2016-2020, Cypress Semiconductor Corporation or a subsidiary of
- * Cypress Semiconductor Corporation. All Rights Reserved.
+ * Copyright 2016-2021, Cypress Semiconductor Corporation (an Infineon company) or
+ * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
  *
  * This software, including source code, documentation and related
- * materials ("Software"), is owned by Cypress Semiconductor Corporation
- * or one of its subsidiaries ("Cypress") and is protected by and subject to
+ * materials ("Software") is owned by Cypress Semiconductor Corporation
+ * or one of its affiliates ("Cypress") and is protected by and subject to
  * worldwide patent protection (United States and foreign),
  * United States copyright laws and international treaty provisions.
  * Therefore, you may use this Software only as provided in the license
@@ -13,7 +13,7 @@
  * If no EULA applies, Cypress hereby grants you a personal, non-exclusive,
  * non-transferable license to copy, modify, and compile the Software
  * source code solely for use in connection with Cypress's
- * integrated circuit products. Any reproduction, modification, translation,
+ * integrated circuit products.  Any reproduction, modification, translation,
  * compilation, or representation of this Software except as specified
  * above is prohibited without the express written permission of Cypress.
  *
@@ -91,6 +91,9 @@
  ******************************************************************************/
 #define HELLO_SENSOR_GATTS_MAX_CONN     1
 
+#ifndef APP_ADV_NAME
+#define APP_ADV_NAME wiced_bt_cfg_settings.device_name
+#endif
 /******************************************************************************
  *                                Structures
  ******************************************************************************/
@@ -463,8 +466,8 @@ void hello_sensor_set_advertisement_data(void)
     num_elem++;
 
     adv_elem[num_elem].advert_type  = BTM_BLE_ADVERT_TYPE_NAME_COMPLETE;
-    adv_elem[num_elem].len          = strlen( (const char *)wiced_bt_cfg_settings.device_name );
-    adv_elem[num_elem].p_data       = (uint8_t *)wiced_bt_cfg_settings.device_name;
+    adv_elem[num_elem].len          = strlen( (const char *) APP_ADV_NAME);
+    adv_elem[num_elem].p_data       = (uint8_t *)APP_ADV_NAME;
     num_elem++;
 
     wiced_bt_ble_set_raw_advertisement_data(num_elem, adv_elem);
