@@ -42,13 +42,18 @@
 #ifndef _HELLO_SENSOR_H_
 #define _HELLO_SENSOR_H_
 
-#include "wiced_gki.h"
-#if ( defined(CYW20706A2) || defined(CYW20719B1) || defined(CYW20719B0) || defined(CYW20721B1) || defined(CYW20735B0) || defined(CYW43012C0) )
-#include "wiced_bt_app_common.h"
-#include "wiced_bt_app_hal_common.h"
+#ifndef BTSTACK_VER
+ #include "wiced_gki.h"
+ #if ( defined(CYW20706A2) || defined(CYW20719B1) || defined(CYW20719B0) || defined(CYW20721B1) || defined(CYW20735B0) || defined(CYW43012C0) )
+  #include "wiced_bt_app_common.h"
+  #include "wiced_bt_app_hal_common.h"
+ #endif
 #endif
 #include "wiced_hal_nvram.h"
 
+#ifndef PACKED
+#define PACKED
+#endif
 
 /******************************************************************************
  *                                Constants
@@ -86,9 +91,14 @@
 #define HELLO_SENSOR_LED_GPIO       WICED_GPIO_PIN_LED1
 #endif
 
-#if defined(CYW20735B1) || defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20721B1) || defined(CYW20721B2) || defined(CYW20819A1)
+#if defined(CYW20735B1) || defined(CYW20835B1) || defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20721B1) || defined(CYW20721B2) || defined(CYW20819A1) || defined(CYW20739B2)
 #define HELLO_SENSOR_LED_GPIO        (uint32_t)*platform_led[hello_sensor_led_pin].gpio
 #endif
+
+#if defined(CYW55572) // We still cannot use Configurator to configure LED yet, we just force it to use PIN 26
+ #define HELLO_SENSOR_LED_GPIO    26
+#endif
+
 /******************************************************************************
  *                          Constants
  ******************************************************************************/

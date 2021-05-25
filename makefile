@@ -56,19 +56,21 @@ SUPPORTED_TARGETS = \
   CYBT-273063-EVAL \
   CYBT-263065-EVAL \
   CYW989820EVB-01 \
-  CYW920721B2EVK-03 \
   CYW920721B2EVK-02 \
   CYW920719B2Q40EVB-01 \
   CYW920706WCDEVAL \
   CYBT-353027-EVAL \
   CYBT-343026-EVAL \
+  CYBT-343052-EVAL \
   CYW920735Q60EVB-01 \
+  CYW920835M2EVB-01 \
   CYBT-423054-EVAL \
   CYBT-413055-EVAL \
   CYBT-483056-EVAL \
   CYBT-423060-EVAL \
   CYBT-413061-EVAL \
   CYBT-483062-EVAL \
+  CYW955572BTEVK-01 \
   CYW920721M2EVK-02
 
 #
@@ -97,6 +99,7 @@ UART?=AUTO
 XIP?=xip
 TRANSPORT?=UART
 ENABLE_DEBUG?=0
+APP_NAME?=Hello
 
 # wait for SWD attach
 ifeq ($(ENABLE_DEBUG),1)
@@ -104,7 +107,7 @@ CY_APP_DEFINES+=-DENABLE_DEBUG=1
 endif
 
 CY_APP_DEFINES+=\
-    -DWICED_BT_TRACE_ENABLE
+    -DWICED_BT_TRACE_ENABLE -DDEV_NAME=\"$(APP_NAME)\"
 
 #
 # Components (middleware libraries)
@@ -166,6 +169,6 @@ CY_BT_APP_TOOLS+=BTSpy ClientControl hello_client
 
 -include internal.mk
 ifeq ($(filter $(TARGET),$(SUPPORTED_TARGETS)),)
-$(error TARGET $(TARGET) not supported for this code example)
+$(error TARGET $(TARGET) not supported for this application. Edit SUPPORTED_TARGETS in the code example makefile to add new BSPs)
 endif
 include $(CY_TOOLS_DIR)/make/start.mk

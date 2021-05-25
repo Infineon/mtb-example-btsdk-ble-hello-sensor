@@ -74,25 +74,35 @@
 #include "hello_sensor.h"
 #include "wiced_bt_stack.h"
 #include "wiced_transport.h"
-#include "wiced_gki.h"
 #include "wiced_hal_puart.h"
+#include "wiced_timer.h"
+#include "wiced_platform.h"
+#ifdef BTSTACK_VER
+ #include "wiced_memory.h"
+ #include "bt_types.h"
+#else
+ #define WICED_GPIO_PIN_OUTPUT_HIGH GPIO_PIN_OUTPUT_HIGH
+ #define WICED_GPIO_PIN_OUTPUT_LOW  GPIO_PIN_OUTPUT_LOW
+ #include "wiced_gki.h"
+ #if !defined(CYW20735B1) && !defined(CYW20835B1) && !defined(CYW20719B1) && !defined(CYW20721B1) && !defined(CYW20819A1) && !defined(CYW20719B2) && !defined(CYW20721B2) && !defined(CYW20739B2)
+  #include "wiced_bt_app_common.h"
+ #endif
+#endif
 
 #ifdef  WICED_BT_TRACE_ENABLE
 #include "wiced_bt_trace.h"
 #endif
 #include "wiced_timer.h"
 
-#if !defined(CYW20735B1) && !defined(CYW20719B1) && !defined(CYW20721B1) && !defined(CYW20819A1) && !defined(CYW20719B2) && !defined(CYW20721B2)
-#include "wiced_bt_app_common.h"
-#endif
-#include "wiced_platform.h"
 /******************************************************************************
  *                                Constants
  ******************************************************************************/
 #define HELLO_SENSOR_GATTS_MAX_CONN     1
 
-#ifndef APP_ADV_NAME
 #define APP_ADV_NAME wiced_bt_cfg_settings.device_name
+
+#ifndef DEV_NAME
+#define DEV_NAME "Hello"
 #endif
 /******************************************************************************
  *                                Structures
@@ -129,7 +139,15 @@ typedef struct
 } attribute_t;
 
 extern const wiced_bt_cfg_settings_t wiced_bt_cfg_settings;
+#ifdef BTSTACK_VER
+#define BT_STACK_HEAP_SIZE          1024 * 6
+wiced_bt_heap_t *p_default_heap = NULL;
+wiced_bt_db_hash_t headset_db_hash;
+#define wiced_bt_gatt_send_notification(id, type, len, ptr) wiced_bt_gatt_server_send_notification(id, type, len, ptr, NULL)
+#define wiced_bt_gatt_send_indication(id, type, len, ptr)   wiced_bt_gatt_server_send_indication(id, type, len, ptr, NULL)
+#else
 extern const wiced_bt_cfg_buf_pool_t wiced_bt_cfg_buf_pools[];
+#endif
 
 /******************************************************************************
  *                                Variables Definitions
@@ -157,18 +175,18 @@ const uint8_t hello_sensor_gatt_database[]=
 
     // Declare mandatory GAP service characteristic: Dev Name
         CHARACTERISTIC_UUID16( HANDLE_HSENS_GAP_SERVICE_CHAR_DEV_NAME, HANDLE_HSENS_GAP_SERVICE_CHAR_DEV_NAME_VAL,
-            UUID_CHARACTERISTIC_DEVICE_NAME, LEGATTDB_CHAR_PROP_READ, LEGATTDB_PERM_READABLE ),
+            UUID_CHARACTERISTIC_DEVICE_NAME, GATTDB_CHAR_PROP_READ, GATTDB_PERM_READABLE ),
 
     // Declare mandatory GAP service characteristic: Appearance
         CHARACTERISTIC_UUID16( HANDLE_HSENS_GAP_SERVICE_CHAR_DEV_APPEARANCE, HANDLE_HSENS_GAP_SERVICE_CHAR_DEV_APPEARANCE_VAL,
-            UUID_CHARACTERISTIC_APPEARANCE, LEGATTDB_CHAR_PROP_READ, LEGATTDB_PERM_READABLE ),
+            UUID_CHARACTERISTIC_APPEARANCE, GATTDB_CHAR_PROP_READ, GATTDB_PERM_READABLE ),
 
     // Declare proprietary Hello Service with 128 byte UUID
     PRIMARY_SERVICE_UUID128( HANDLE_HSENS_SERVICE, UUID_HELLO_SERVICE ),
 
     // Declare characteristic used to notify/indicate change
         CHARACTERISTIC_UUID128( HANDLE_HSENS_SERVICE_CHAR_NOTIFY, HANDLE_HSENS_SERVICE_CHAR_NOTIFY_VAL,
-            UUID_HELLO_CHARACTERISTIC_NOTIFY, LEGATTDB_CHAR_PROP_READ | LEGATTDB_CHAR_PROP_NOTIFY | LEGATTDB_CHAR_PROP_INDICATE, LEGATTDB_PERM_READABLE ),
+            UUID_HELLO_CHARACTERISTIC_NOTIFY, GATTDB_CHAR_PROP_READ | GATTDB_CHAR_PROP_NOTIFY | GATTDB_CHAR_PROP_INDICATE, GATTDB_PERM_READABLE ),
 
             // Declare client characteristic configuration descriptor
     // Value of the descriptor can be modified by the client
@@ -176,39 +194,39 @@ const uint8_t hello_sensor_gatt_database[]=
             // for bonded devices.  Setting value to 1 tells this application to send notification
             // when value of the characteristic changes.  Value 2 is to allow indications.
             CHAR_DESCRIPTOR_UUID16_WRITABLE( HANDLE_HSENS_SERVICE_CHAR_CFG_DESC, UUID_DESCRIPTOR_CLIENT_CHARACTERISTIC_CONFIGURATION,
-            LEGATTDB_PERM_READABLE | LEGATTDB_PERM_WRITE_REQ | LEGATTDB_PERM_AUTH_READABLE | LEGATTDB_PERM_AUTH_WRITABLE),
+            GATTDB_PERM_READABLE | GATTDB_PERM_WRITE_REQ | GATTDB_PERM_AUTH_READABLE | GATTDB_PERM_AUTH_WRITABLE),
 
         // Declare characteristic Hello Configuration
     // The configuration consists of 1 bytes which indicates how many times to
     // blink the LED when user pushes the button.
         CHARACTERISTIC_UUID128_WRITABLE( HANDLE_HSENS_SERVICE_CHAR_BLINK, HANDLE_HSENS_SERVICE_CHAR_BLINK_VAL,
-            UUID_HELLO_CHARACTERISTIC_CONFIG, LEGATTDB_CHAR_PROP_READ | LEGATTDB_CHAR_PROP_WRITE,
-            LEGATTDB_PERM_READABLE | LEGATTDB_PERM_WRITE_CMD | LEGATTDB_PERM_WRITE_REQ ),
+            UUID_HELLO_CHARACTERISTIC_CONFIG, GATTDB_CHAR_PROP_READ | GATTDB_CHAR_PROP_WRITE,
+            GATTDB_PERM_READABLE | GATTDB_PERM_WRITE_CMD | GATTDB_PERM_WRITE_REQ ),
 
     // Declare Device info service
     PRIMARY_SERVICE_UUID16( HANDLE_HSENS_DEV_INFO_SERVICE, UUID_SERVICE_DEVICE_INFORMATION ),
 
     // Handle 0x4e: characteristic Manufacturer Name, handle 0x4f characteristic value
         CHARACTERISTIC_UUID16( HANDLE_HSENS_DEV_INFO_SERVICE_CHAR_MFR_NAME, HANDLE_HSENS_DEV_INFO_SERVICE_CHAR_MFR_NAME_VAL,
-            UUID_CHARACTERISTIC_MANUFACTURER_NAME_STRING, LEGATTDB_CHAR_PROP_READ, LEGATTDB_PERM_READABLE ),
+            UUID_CHARACTERISTIC_MANUFACTURER_NAME_STRING, GATTDB_CHAR_PROP_READ, GATTDB_PERM_READABLE ),
 
     // Handle 0x50: characteristic Model Number, handle 0x51 characteristic value
         CHARACTERISTIC_UUID16( HANDLE_HSENS_DEV_INFO_SERVICE_CHAR_MODEL_NUM, HANDLE_HSENS_DEV_INFO_SERVICE_CHAR_MODEL_NUM_VAL,
-            UUID_CHARACTERISTIC_MODEL_NUMBER_STRING, LEGATTDB_CHAR_PROP_READ, LEGATTDB_PERM_READABLE ),
+            UUID_CHARACTERISTIC_MODEL_NUMBER_STRING, GATTDB_CHAR_PROP_READ, GATTDB_PERM_READABLE ),
 
     // Handle 0x52: characteristic System ID, handle 0x53 characteristic value
         CHARACTERISTIC_UUID16( HANDLE_HSENS_DEV_INFO_SERVICE_CHAR_SYSTEM_ID, HANDLE_HSENS_DEV_INFO_SERVICE_CHAR_SYSTEM_ID_VAL,
-            UUID_CHARACTERISTIC_SYSTEM_ID, LEGATTDB_CHAR_PROP_READ, LEGATTDB_PERM_READABLE ),
+            UUID_CHARACTERISTIC_SYSTEM_ID, GATTDB_CHAR_PROP_READ, GATTDB_PERM_READABLE ),
 
     // Declare Battery service
     PRIMARY_SERVICE_UUID16( HANDLE_HSENS_BATTERY_SERVICE, 0x180F ),
 
     // Handle 0x62: characteristic Battery Level, handle 0x63 characteristic value
         CHARACTERISTIC_UUID16( HANDLE_HSENS_BATTERY_SERVICE_CHAR_LEVEL, HANDLE_HSENS_BATTERY_SERVICE_CHAR_LEVEL_VAL,
-            UUID_CHARACTERISTIC_BATTERY_LEVEL, LEGATTDB_CHAR_PROP_READ, LEGATTDB_PERM_READABLE),
+            UUID_CHARACTERISTIC_BATTERY_LEVEL, GATTDB_CHAR_PROP_READ, GATTDB_PERM_READABLE),
 };
 
-uint8_t hello_sensor_device_name[]          = "Hello";                                              //GAP Service characteristic Device Name
+uint8_t hello_sensor_device_name[]          = DEV_NAME;                                          //GAP Service characteristic Device Name
 uint8_t hello_sensor_appearance_name[2]     = { BIT16_TO_8(APPEARANCE_GENERIC_TAG) };
 char    hello_sensor_char_notify_value[]    = { 'H', 'e', 'l', 'l', 'o', ' ', '0' };             //Notification Name
 char    hello_sensor_char_mfr_name_value[]  = { 'C', 'y', 'p', 'r', 'e', 's', 's', 0, };
@@ -234,7 +252,7 @@ extern wiced_led_config_t platform_led[];
 wiced_platform_led_t hello_sensor_led_pin = WICED_PLATFORM_LED_1;
 #endif
 
-#if defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20735B1) || defined(CYW20721B1) || defined(CYW20819A1)
+#if defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20735B1) || defined(CYW20835B1) || defined(CYW20721B1) || defined(CYW20819A1)
 extern wiced_platform_led_config_t platform_led[];
 extern size_t led_count;
 wiced_platform_led_number_t hello_sensor_led_pin = WICED_PLATFORM_LED_2;
@@ -250,7 +268,11 @@ wiced_platform_led_number_t hello_sensor_led_pin = WICED_PLATFORM_LED_2;
 #endif
 #endif
 
-
+#if defined(CYW20739B2)
+extern wiced_platform_led_config_t platform_led[];
+extern size_t led_count;
+wiced_platform_led_number_t hello_sensor_led_pin = WICED_PLATFORM_LED_1;
+#endif
 
 wiced_bt_gpio_numbers_t led_pin;
 
@@ -280,11 +302,20 @@ const wiced_transport_cfg_t transport_cfg =
             .baud_rate =  HCI_UART_DEFAULT_BAUD
         },
     },
+#ifdef NEW_DYNAMIC_MEMORY_INCLUDED
+    .heap_config =
+    {
+        .data_heap_size = 1024 * 4 + 1500 * 2,
+        .hci_trace_heap_size = 1024 * 2,
+        .debug_trace_heap_size = 1024,
+    },
+#else
     .rx_buff_pool_cfg =
     {
         .buffer_size = 0,
         .buffer_count = 0
     },
+#endif
     .p_status_handler = NULL,
     .p_data_handler = NULL,
     .p_tx_complete_cback = NULL
@@ -311,6 +342,7 @@ static void                     hello_sensor_led_timeout( uint32_t count );
 static void                     hello_sensor_led_blink(uint16_t on_ms, uint16_t off_ms, uint8_t num_of_blinks );
 static void                     hello_sensor_interrput_config (void);
 #endif
+
 /******************************************************************************
  *                          Function Definitions
  ******************************************************************************/
@@ -345,8 +377,18 @@ APPLICATION_START( )
     WICED_BT_TRACE( "Hello Sensor Start\n" );
 
     // Register call back and configuration with stack
-    wiced_bt_stack_init( hello_sensor_management_cback ,
-                    &wiced_bt_cfg_settings, wiced_bt_cfg_buf_pools );
+#ifdef BTSTACK_VER
+    /* Create default heap */
+    p_default_heap = wiced_bt_create_heap("default_heap", NULL, BT_STACK_HEAP_SIZE, NULL, WICED_TRUE);
+    if (p_default_heap == NULL)
+    {
+        WICED_BT_TRACE("create default heap error: size %d\n", BT_STACK_HEAP_SIZE);
+        return;
+    }
+    wiced_bt_stack_init(hello_sensor_management_cback, &wiced_bt_cfg_settings);
+#else
+    wiced_bt_stack_init(hello_sensor_management_cback, &wiced_bt_cfg_settings, wiced_bt_cfg_buf_pools);
+#endif
 }
 
 /*
@@ -367,8 +409,13 @@ void hello_sensor_application_init( void )
     gatt_status = wiced_bt_gatt_register(hello_sensor_gatts_callback);
     WICED_BT_TRACE( "wiced_bt_gatt_register: %d\n", gatt_status );
 
+
     /*  Tell stack to use our GATT database */
+#ifdef BTSTACK_VER
+    gatt_status =  wiced_bt_gatt_db_init( hello_sensor_gatt_database, sizeof(hello_sensor_gatt_database), headset_db_hash );
+#else
     gatt_status =  wiced_bt_gatt_db_init( hello_sensor_gatt_database, sizeof(hello_sensor_gatt_database) );
+#endif
 
     WICED_BT_TRACE("wiced_bt_gatt_db_init %d\n", gatt_status);
 #ifdef ENABLE_HCI_TRACE
@@ -441,7 +488,11 @@ static void hello_sensor_interrput_config (void)
 void hello_sensor_hci_trace_cback( wiced_bt_hci_trace_type_t type, uint16_t length, uint8_t* p_data )
 {
     //send the trace
-    wiced_transport_send_hci_trace( NULL, type, length, p_data  );
+ #ifdef NEW_DYNAMIC_MEMORY_INCLUDED
+    wiced_transport_send_hci_trace( type, p_data, length );
+ #else
+    wiced_transport_send_hci_trace( NULL, type, length, p_data );
+ #endif
 }
 #endif
 
@@ -504,7 +555,7 @@ void hello_sensor_led_timeout( uint32_t count )
     static wiced_bool_t led_on = WICED_FALSE;
     if ( led_on )
     {
-        wiced_hal_gpio_set_pin_output(led_pin, GPIO_PIN_OUTPUT_HIGH);
+        wiced_hal_gpio_set_pin_output(led_pin, WICED_GPIO_PIN_OUTPUT_HIGH);
         if (--hello_sensor_led_blink_count)
         {
             led_on = WICED_FALSE;
@@ -514,7 +565,7 @@ void hello_sensor_led_timeout( uint32_t count )
     else
     {
         led_on = WICED_TRUE;
-        wiced_hal_gpio_set_pin_output(led_pin, GPIO_PIN_OUTPUT_LOW);
+        wiced_hal_gpio_set_pin_output(led_pin, WICED_GPIO_PIN_OUTPUT_LOW);
         wiced_start_timer( &hello_sensor_led_timer, hello_sensor_led_on_ms );
     }
 }
@@ -525,7 +576,7 @@ void hello_sensor_led_timeout( uint32_t count )
 void hello_sensor_led_blink(uint16_t on_ms, uint16_t off_ms, uint8_t num_of_blinks )
 {
     if (num_of_blinks
-#if defined(CYW20735B1) || defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20721B1) || defined(CYW20721B2) || defined(CYW20819A1)
+#if defined(CYW20735B1) || defined(CYW20835B1) || defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20721B1) || defined(CYW20721B2) || defined(CYW20819A1) || defined(CYW20739B2)
             && hello_sensor_led_pin < led_count
 #endif
         )
@@ -533,7 +584,7 @@ void hello_sensor_led_blink(uint16_t on_ms, uint16_t off_ms, uint8_t num_of_blin
         hello_sensor_led_blink_count = num_of_blinks;
         hello_sensor_led_off_ms = off_ms;
         hello_sensor_led_on_ms = on_ms;
-        wiced_hal_gpio_set_pin_output(led_pin, GPIO_PIN_OUTPUT_LOW);
+        wiced_hal_gpio_set_pin_output(led_pin, WICED_GPIO_PIN_OUTPUT_LOW);
         wiced_stop_timer(&hello_sensor_led_timer);
         wiced_start_timer(&hello_sensor_led_timer,on_ms);
     }
@@ -838,7 +889,7 @@ void hello_sensor_send_message( void )
  */
 attribute_t * hello_sensor_get_attribute( uint16_t handle )
 {
-    int i;
+    uint32_t i;
     for ( i = 0; i <  sizeof( gauAttributes ) / sizeof( gauAttributes[0] ); i++ )
     {
         if ( gauAttributes[i].handle == handle )
@@ -850,7 +901,242 @@ attribute_t * hello_sensor_get_attribute( uint16_t handle )
     return NULL;
 }
 
+#if BTSTACK_VER > 0x01020000
+/*
+ * Process Read request from peer device
+ */
+wiced_bt_gatt_status_t app_gatt_read_handler(uint16_t conn_id,
+        wiced_bt_gatt_opcode_t opcode,
+        wiced_bt_gatt_read_t *p_read_req,
+        uint16_t len_requested)
+{
+    const attribute_t *puAttribute;
+    int          attr_len_to_copy;
+    uint8_t     *from;
+    int          to_send;
 
+    if ((puAttribute = hello_sensor_get_attribute(p_read_req->handle)) == NULL)
+    {
+        WICED_BT_TRACE("[%s] read_hndlr attr not found hdl:%x\n", __FUNCTION__,
+                p_read_req->handle );
+        wiced_bt_gatt_server_send_error_rsp(conn_id, opcode, p_read_req->handle,
+                WICED_BT_GATT_INVALID_HANDLE);
+        return WICED_BT_GATT_INVALID_HANDLE;
+    }
+
+    attr_len_to_copy = puAttribute->attr_len;
+
+    WICED_BT_TRACE("[%s] read_hndlr conn_id:%d hdl:%x offset:%d len:%d\n",
+            __FUNCTION__, conn_id, p_read_req->handle, p_read_req->offset,
+            attr_len_to_copy );
+
+    if (p_read_req->offset >= puAttribute->attr_len )
+    {
+        WICED_BT_TRACE("[%s] offset:%d larger than attribute length:%d\n",
+                __FUNCTION__, p_read_req->offset, puAttribute->attr_len);
+        wiced_bt_gatt_server_send_error_rsp(conn_id, opcode, p_read_req->handle,
+                WICED_BT_GATT_INVALID_OFFSET);
+        return WICED_BT_GATT_INVALID_OFFSET;
+    }
+
+    to_send = MIN(len_requested, attr_len_to_copy - p_read_req->offset);
+
+    from = ((uint8_t *)puAttribute->p_attr) + p_read_req->offset;
+
+    wiced_bt_gatt_server_send_read_handle_rsp(conn_id, opcode, to_send, from, NULL);
+
+    return WICED_BT_GATT_SUCCESS;
+}
+
+/*
+ * Process Read by type request from peer device
+ */
+wiced_bt_gatt_status_t app_gatt_read_by_type_handler(uint16_t conn_id,
+        wiced_bt_gatt_opcode_t opcode,
+        wiced_bt_gatt_read_by_type_t *p_read_req,
+        uint16_t len_requested)
+{
+    const attribute_t *puAttribute;
+    uint16_t    attr_handle = p_read_req->s_handle;
+    uint8_t     *p_rsp = wiced_bt_get_buffer(len_requested);
+    uint16_t    rsp_len = 0;
+    uint8_t    pair_len = 0;
+    int used = 0;
+
+    if (p_rsp == NULL)
+    {
+        WICED_BT_TRACE("[%s] no memory len_requested: %d!!\n", __FUNCTION__,
+                len_requested);
+        wiced_bt_gatt_server_send_error_rsp(conn_id, opcode, attr_handle,
+                WICED_BT_GATT_INSUF_RESOURCE);
+        return WICED_BT_GATT_INSUF_RESOURCE;
+    }
+
+    /* Read by type returns all attributes of the specified type, between the start and end handles */
+    while (WICED_TRUE)
+    {
+        /// Add your code here
+        attr_handle = wiced_bt_gatt_find_handle_by_type(attr_handle,
+                p_read_req->e_handle, &p_read_req->uuid);
+
+        if (attr_handle == 0)
+            break;
+
+        if ((puAttribute = hello_sensor_get_attribute(attr_handle)) == NULL)
+        {
+            WICED_BT_TRACE("[%s] found type but no attribute ??\n", __FUNCTION__);
+            wiced_bt_gatt_server_send_error_rsp(conn_id, opcode,
+                    p_read_req->s_handle, WICED_BT_GATT_ERR_UNLIKELY);
+            wiced_bt_free_buffer(p_rsp);
+            return WICED_BT_GATT_ERR_UNLIKELY;
+        }
+        // --------
+
+        {
+            int filled = wiced_bt_gatt_put_read_by_type_rsp_in_stream(
+                    p_rsp + used,
+                    len_requested - used,
+                    &pair_len,
+                    attr_handle,
+                    puAttribute->attr_len,
+                    puAttribute->p_attr);
+            if (filled == 0) {
+                break;
+            }
+            used += filled;
+        }
+
+        /* Increment starting handle for next search to one past current */
+        attr_handle++;
+    }
+
+    if (used == 0)
+    {
+        WICED_BT_TRACE("[%s] attr not found 0x%04x -  0x%04x Type: 0x%04x\n",
+                __FUNCTION__, p_read_req->s_handle, p_read_req->e_handle,
+                p_read_req->uuid.uu.uuid16);
+
+        wiced_bt_gatt_server_send_error_rsp(conn_id, opcode, p_read_req->s_handle,
+                WICED_BT_GATT_INVALID_HANDLE);
+        wiced_bt_free_buffer(p_rsp);
+        return WICED_BT_GATT_INVALID_HANDLE;
+    }
+
+    /* Send the response */
+    wiced_bt_gatt_server_send_read_by_type_rsp(conn_id, opcode, pair_len,
+            used, p_rsp, (wiced_bt_gatt_app_context_t)wiced_bt_free_buffer);
+
+    return WICED_BT_GATT_SUCCESS;
+}
+
+/*
+ * Process read multi request from peer device
+ */
+wiced_bt_gatt_status_t app_gatt_read_multi_handler(uint16_t conn_id,
+        wiced_bt_gatt_opcode_t opcode,
+        wiced_bt_gatt_read_multiple_req_t *p_read_req,
+        uint16_t len_requested)
+{
+    const attribute_t *puAttribute;
+    uint8_t     *p_rsp = wiced_bt_get_buffer(len_requested);
+    int         used = 0;
+    int         xx;
+    uint16_t    handle;
+
+    handle = wiced_bt_gatt_get_handle_from_stream(p_read_req->p_handle_stream, 0);
+
+    if (p_rsp == NULL)
+    {
+        WICED_BT_TRACE ("[%s] no memory len_requested: %d!!\n", __FUNCTION__,
+                len_requested);
+
+        wiced_bt_gatt_server_send_error_rsp(conn_id, opcode, handle,
+                WICED_BT_GATT_INSUF_RESOURCE);
+        return WICED_BT_GATT_INSUF_RESOURCE;
+    }
+
+    /* Read by type returns all attributes of the specified type, between the start and end handles */
+    for (xx = 0; xx < p_read_req->num_handles; xx++)
+    {
+        handle = wiced_bt_gatt_get_handle_from_stream(p_read_req->p_handle_stream,
+                xx);
+        if ((puAttribute = hello_sensor_get_attribute(handle)) == NULL)
+        {
+            WICED_BT_TRACE ("[%s] no handle 0x%04xn", __FUNCTION__, handle);
+            wiced_bt_gatt_server_send_error_rsp(conn_id, opcode,
+                    *p_read_req->p_handle_stream, WICED_BT_GATT_ERR_UNLIKELY);
+            wiced_bt_free_buffer(p_rsp);
+            return WICED_BT_GATT_ERR_UNLIKELY;
+        }
+
+        {
+            int filled = wiced_bt_gatt_put_read_multi_rsp_in_stream(opcode,
+                    p_rsp + used,
+                    len_requested - used,
+                    puAttribute->handle,
+                    puAttribute->attr_len,
+                    puAttribute->p_attr);
+
+            if (!filled) {
+                break;
+            }
+            used += filled;
+        }
+    }
+
+    if (used == 0)
+    {
+        WICED_BT_TRACE ("[%s] no attr found\n", __FUNCTION__);
+
+        wiced_bt_gatt_server_send_error_rsp(conn_id, opcode,
+                *p_read_req->p_handle_stream, WICED_BT_GATT_INVALID_HANDLE);
+        wiced_bt_free_buffer(p_rsp);
+        return WICED_BT_GATT_INVALID_HANDLE;
+    }
+
+    /* Send the response */
+    wiced_bt_gatt_server_send_read_multiple_rsp(conn_id, opcode, used, p_rsp,
+            (wiced_bt_gatt_app_context_t)wiced_bt_free_buffer);
+
+    return WICED_BT_GATT_SUCCESS;
+}
+
+/*
+ * Process write request or write command from peer device
+ */
+wiced_bt_gatt_status_t app_gatt_write_handler(uint16_t conn_id,
+        wiced_bt_gatt_opcode_t opcode,
+        wiced_bt_gatt_write_req_t* p_data)
+{
+    WICED_BT_TRACE("[%s] conn_id:%d handle:%04x\n", __FUNCTION__, conn_id,
+            p_data->handle);
+
+    return WICED_BT_GATT_SUCCESS;
+}
+
+/*
+ * Process MTU request from the peer
+ */
+wiced_bt_gatt_status_t app_gatt_mtu_handler( uint16_t conn_id, uint16_t mtu)
+{
+    WICED_BT_TRACE("req_mtu: %d\n", mtu);
+    wiced_bt_gatt_server_send_mtu_rsp(conn_id, mtu,
+            wiced_bt_cfg_settings.p_ble_cfg->ble_max_rx_pdu_size);
+    return WICED_BT_GATT_SUCCESS;
+}
+
+/*
+ * Process indication confirm.
+ */
+wiced_bt_gatt_status_t app_gatt_conf_handler(uint16_t conn_id,
+        uint16_t handle)
+{
+    WICED_BT_TRACE("[%s] conn_id:%d handle:%x\n", __FUNCTION__, conn_id, handle);
+
+    return WICED_BT_GATT_SUCCESS;
+}
+
+#else /* !BTSTACK_VER */
 /*
  * Process Read request or command from peer device
  */
@@ -1018,6 +1304,7 @@ wiced_bt_gatt_status_t hello_sensor_gatts_req_conf_handler( uint16_t conn_id, ui
 
     return WICED_BT_GATT_SUCCESS;
 }
+#endif
 
 /* This function is invoked when connection is established */
 wiced_bt_gatt_status_t hello_sensor_gatts_connection_up( wiced_bt_gatt_connection_status_t *p_status )
@@ -1094,37 +1381,106 @@ wiced_bt_gatt_status_t hello_sensor_gatts_conn_status_cb( wiced_bt_gatt_connecti
 /*
  * Process GATT request from the peer
  */
-wiced_bt_gatt_status_t hello_sensor_gatts_req_cb( wiced_bt_gatt_attribute_request_t *p_data )
+wiced_bt_gatt_status_t hello_sensor_gatts_req_cb( wiced_bt_gatt_attribute_request_t *p_req )
 {
     wiced_bt_gatt_status_t result = WICED_BT_GATT_INVALID_PDU;
 
-    WICED_BT_TRACE( "hello_sensor_gatts_req_cb. conn %d, type %d\n", p_data->conn_id, p_data->request_type );
+#if BTSTACK_VER > 0x01020000
+    WICED_BT_TRACE( "hello_sensor_gatts_req_cb. conn %d, type %d\n", p_req->conn_id, p_req->opcode );
 
-    switch ( p_data->request_type )
+    switch (p_req->opcode)
+    {
+        case GATT_REQ_READ:
+        case GATT_REQ_READ_BLOB:
+            result = app_gatt_read_handler(p_req->conn_id,
+                    p_req->opcode,
+                    &p_req->data.read_req,
+                    p_req->len_requested);
+            break;
+
+        case GATT_REQ_READ_BY_TYPE:
+            result = app_gatt_read_by_type_handler(p_req->conn_id,
+                    p_req->opcode,
+                    &p_req->data.read_by_type,
+                    p_req->len_requested);
+            break;
+
+        case GATT_REQ_READ_MULTI:
+        case GATT_REQ_READ_MULTI_VAR_LENGTH:
+            result = app_gatt_read_multi_handler(p_req->conn_id,
+                    p_req->opcode,
+                    &p_req->data.read_multiple_req,
+                    p_req->len_requested);
+            break;
+
+        case GATT_REQ_WRITE:
+        case GATT_CMD_WRITE:
+        case GATT_CMD_SIGNED_WRITE:
+            result = app_gatt_write_handler(p_req->conn_id,
+                    p_req->opcode,
+                    &(p_req->data.write_req));
+            if (result == WICED_BT_GATT_SUCCESS)
+            {
+                wiced_bt_gatt_server_send_write_rsp(
+                        p_req->conn_id,
+                        p_req->opcode,
+                        p_req->data.write_req.handle);
+            }
+            else
+            {
+                wiced_bt_gatt_server_send_error_rsp(
+                        p_req->conn_id,
+                        p_req->opcode,
+                        p_req->data.write_req.handle,
+                        result);
+            }
+            break;
+
+        case GATT_REQ_MTU:
+            result = app_gatt_mtu_handler(p_req->conn_id,
+                    p_req->data.remote_mtu);
+            break;
+
+        case GATT_HANDLE_VALUE_CONF:
+            result = app_gatt_conf_handler(p_req->conn_id,
+                    p_req->data.confirm.handle);
+            break;
+
+       default:
+            WICED_BT_TRACE("Invalid GATT request conn_id:%d opcode:%d\n",
+                    p_req->conn_id, p_req->opcode);
+            break;
+    }
+
+#else /* !BTSTACK_VER */
+    WICED_BT_TRACE( "hello_sensor_gatts_req_cb. conn %d, type %d\n", p_req->conn_id, p_req->request_type );
+
+    switch ( p_req->request_type )
     {
     case GATTS_REQ_TYPE_READ:
-        result = hello_sensor_gatts_req_read_handler( p_data->conn_id, &(p_data->data.read_req) );
+        result = hello_sensor_gatts_req_read_handler( p_req->conn_id, &(p_req->data.read_req) );
         break;
 
     case GATTS_REQ_TYPE_WRITE:
-        result = hello_sensor_gatts_req_write_handler( p_data->conn_id, &(p_data->data.write_req) );
+        result = hello_sensor_gatts_req_write_handler( p_req->conn_id, &(p_req->data.write_req) );
         break;
 
     case GATTS_REQ_TYPE_WRITE_EXEC:
-        result = hello_sensor_gatts_req_write_exec_handler( p_data->conn_id, p_data->data.exec_write );
+        result = hello_sensor_gatts_req_write_exec_handler( p_req->conn_id, p_req->data.exec_write );
         break;
 
     case GATTS_REQ_TYPE_MTU:
-        result = hello_sensor_gatts_req_mtu_handler( p_data->conn_id, p_data->data.mtu );
+        result = hello_sensor_gatts_req_mtu_handler( p_req->conn_id, p_req->data.mtu );
         break;
 
     case GATTS_REQ_TYPE_CONF:
-        result = hello_sensor_gatts_req_conf_handler( p_data->conn_id, p_data->data.handle );
+        result = hello_sensor_gatts_req_conf_handler( p_req->conn_id, p_req->data.handle );
         break;
 
    default:
         break;
     }
+#endif /* BTSTACK_VER */
 
     return result;
 }
