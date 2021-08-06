@@ -805,10 +805,30 @@ wiced_result_t hello_sensor_management_cback( wiced_bt_management_evt_t event, w
             break;
 
         case  BTM_PAIRED_DEVICE_LINK_KEYS_REQUEST_EVT:
-            /* read keys from NVRAM */
-            p_keys = (uint8_t *)&p_event_data->paired_device_link_keys_request;
-            wiced_hal_read_nvram( HELLO_SENSOR_PAIRED_KEYS_VS_ID, sizeof(wiced_bt_device_link_keys_t), p_keys, &result );
-            WICED_BT_TRACE("keys read from NVRAM %B result: %d \n", p_keys, result);
+            {
+                wiced_bt_device_link_keys_t link_keys;
+                p_keys = (uint8_t *)&p_event_data->paired_device_link_keys_request;
+                wiced_hal_read_nvram( HELLO_SENSOR_PAIRED_KEYS_VS_ID,
+                                      sizeof(wiced_bt_device_link_keys_t),
+                                      (uint8_t *)&link_keys,
+                                      &result );
+
+                WICED_BT_TRACE("keys read from NVRAM %B req BDA %B result: %d \n", link_keys.bd_addr, p_event_data->paired_device_link_keys_request.bd_addr, result);
+
+                // Break if link key retrival is failed or link key is not available.
+                if (result != WICED_BT_SUCCESS)
+                    break;
+
+                // Compare the BDA
+                if( memcmp(&(link_keys.bd_addr), &(p_event_data->paired_device_link_keys_request.bd_addr), sizeof(wiced_bt_device_address_t) ) == 0 )
+                {
+                    memcpy(p_keys, (uint8_t *)&link_keys, sizeof(wiced_bt_device_link_keys_t));
+                }
+                else
+                {
+                    result = WICED_BT_ERROR;
+                }
+            }
             break;
 
         case BTM_LOCAL_IDENTITY_KEYS_UPDATE_EVT:
