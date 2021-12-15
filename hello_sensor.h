@@ -42,14 +42,33 @@
 #ifndef _HELLO_SENSOR_H_
 #define _HELLO_SENSOR_H_
 
-#ifndef BTSTACK_VER
- #include "wiced_gki.h"
- #if ( defined(CYW20706A2) || defined(CYW20719B1) || defined(CYW20719B0) || defined(CYW20721B1) || defined(CYW20735B0) || defined(CYW43012C0) )
-  #include "wiced_bt_app_common.h"
-  #include "wiced_bt_app_hal_common.h"
- #endif
-#endif
 #include "wiced_hal_nvram.h"
+
+#if BTSTACK_VER >= 0x03000001
+#include "wiced_memory.h"
+#include "bt_types.h"
+#define BT_STACK_HEAP_SIZE          1024 * 6
+#define wiced_bt_gatt_send_notification(id, type, len, ptr) wiced_bt_gatt_server_send_notification(id, type, len, ptr, NULL)
+#define wiced_bt_gatt_send_indication(id, type, len, ptr)   wiced_bt_gatt_server_send_indication(id, type, len, ptr, NULL)
+uint8_t *hello_sensor_alloc_buffer(uint16_t len);
+void hello_sensor_free_buffer(uint8_t *p_data);
+typedef void (*pfn_free_buffer_t)(uint8_t *);
+
+#else // BTSTACK_VER
+
+#include "wiced_gki.h"
+#if !defined(CYW20735B1) && !defined(CYW20835B1) && !defined(CYW20719B1) && !defined(CYW20721B1) && !defined(CYW20819A1) && !defined(CYW20719B2) && !defined(CYW20721B2) && !defined(CYW20739B2)
+#include "wiced_bt_app_common.h"
+#include "wiced_bt_app_hal_common.h"
+#endif
+
+extern const wiced_bt_cfg_buf_pool_t wiced_bt_cfg_buf_pools[];
+#endif // BTSTACK_VER
+
+extern const wiced_transport_cfg_t transport_cfg;
+void hello_sensor_gatt_init();
+extern const uint8_t hello_sensor_gatt_database[];
+extern size_t hello_sensor_gatt_database_size;
 
 #ifndef PACKED
 #define PACKED
@@ -100,22 +119,6 @@
 #endif
 
 /******************************************************************************
- *                          Constants
- ******************************************************************************/
-
-/* UUID value of the Hello Sensor Service */
-#define UUID_HELLO_SERVICE                    0x23, 0x20, 0x56, 0x7c, 0x05, 0xcf, 0x6e, 0xb4, 0xc3, 0x41, 0x77, 0x28, 0x51, 0x82, 0x7e, 0x1b
-
-/* UUID value of the Hello Sensor Characteristic, Value Notification */
-#define UUID_HELLO_CHARACTERISTIC_NOTIFY      0x26, 0xf6, 0x69, 0x91, 0x68, 0xee, 0xc2, 0xbe, 0x44, 0x4d, 0xb9, 0x5c, 0x3f, 0x2d, 0xc3, 0x8a
-
-/* UUID value of the Hello Sensor Characteristic, Configuration */
-#define UUID_HELLO_CHARACTERISTIC_CONFIG      0x1a, 0x89, 0x07, 0x4a, 0x2f, 0x3b, 0x7e, 0xa6, 0x81, 0x44, 0x3f, 0xf9, 0xa8, 0xf2, 0x9b, 0x5e
-
-/* UUID value of the Hello Sensor Characteristic, Configuration */
-#define UUID_HELLO_CHARACTERISTIC_LONG_MSG    0x2a, 0x99, 0x17, 0x5a, 0x3f, 0x4b, 0x8e, 0xb6, 0x91, 0x54, 0x2f, 0x09, 0xb8, 0x02, 0xab, 0x6e
-
-/******************************************************************************
  *                         Type Definitions
  ******************************************************************************/
 typedef enum
@@ -158,6 +161,42 @@ typedef enum
     // Client Configuration
     HDLD_CURRENT_TIME_SERVICE_CURRENT_TIME_CLIENT_CONFIGURATION,
 }hello_sensor_db_tags;
+
+
+/******************************************************************************
+ *                                Structures
+ ******************************************************************************/
+typedef struct
+{
+    BD_ADDR   remote_addr;              // remote peer device address
+    uint32_t  timer_count;              // timer count
+    uint32_t  fine_timer_count;         // fine timer count
+    uint16_t  conn_id;                  // connection ID referenced by the stack
+    uint16_t  peer_mtu;                 // peer MTU
+    uint8_t   num_to_write;             // num msgs to send, incr on each button intr
+    uint8_t   flag_indication_sent;     // indicates waiting for ack/cfm
+    uint8_t   flag_stay_connected;      // stay connected or disconnect after all messages are sent
+    uint8_t   battery_level;            // dummy battery level
+
+} hello_sensor_state_t;
+
+
+#pragma pack(1)
+/* Host information saved in  NVRAM */
+typedef PACKED struct
+{
+    BD_ADDR  bdaddr;                                /* BD address of the bonded host */
+    uint16_t  characteristic_client_configuration;  /* Current value of the client configuration descriptor */
+    uint8_t   number_of_blinks;                     /* Sensor config, number of times to blink the LEd when button is pushed. */
+} host_info_t;
+#pragma pack()
+
+typedef struct
+{
+    uint16_t handle;
+    uint16_t attr_len;
+    void     *p_attr;
+} attribute_t;
 
 
 #endif // _HELLO_SENSOR_H_
