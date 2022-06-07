@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021, Cypress Semiconductor Corporation (an Infineon company) or
+ * Copyright 2016-2022, Cypress Semiconductor Corporation (an Infineon company) or
  * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
  *
  * This software, including source code, documentation and related
@@ -57,7 +57,7 @@ typedef void (*pfn_free_buffer_t)(uint8_t *);
 #else // BTSTACK_VER
 
 #include "wiced_gki.h"
-#if !defined(CYW20735B1) && !defined(CYW20835B1) && !defined(CYW20719B1) && !defined(CYW20721B1) && !defined(CYW20819A1) && !defined(CYW20719B2) && !defined(CYW20721B2) && !defined(CYW20739B2)
+#if !defined(CYW20735B1) && !defined(CYW20835B1) && !defined(CYW20719B1) && !defined(CYW20721B1) && !defined(CYW20819A1) && !defined(CYW20719B2) && !defined(CYW20721B2) && !defined(CYW30739A0)
 #include "wiced_bt_app_common.h"
 #include "wiced_bt_app_hal_common.h"
 #endif
@@ -110,12 +110,8 @@ extern size_t hello_sensor_gatt_database_size;
 #define HELLO_SENSOR_LED_GPIO       WICED_GPIO_PIN_LED1
 #endif
 
-#if defined(CYW20735B1) || defined(CYW20835B1) || defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20721B1) || defined(CYW20721B2) || defined(CYW20819A1) || defined(CYW20739B2)
+#if defined(CYW20735B1) || defined(CYW20835B1) || defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20721B1) || defined(CYW20721B2) || defined(CYW20819A1) || defined(CYW30739A0) || defined(CYW55572)
 #define HELLO_SENSOR_LED_GPIO        (uint32_t)*platform_led[hello_sensor_led_pin].gpio
-#endif
-
-#if defined(CYW55572) // We still cannot use Configurator to configure LED yet, we just force it to use PIN 26
- #define HELLO_SENSOR_LED_GPIO    26
 #endif
 
 /******************************************************************************

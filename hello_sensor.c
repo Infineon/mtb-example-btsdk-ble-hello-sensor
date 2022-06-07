@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021, Cypress Semiconductor Corporation (an Infineon company) or
+ * Copyright 2016-2022, Cypress Semiconductor Corporation (an Infineon company) or
  * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
  *
  * This software, including source code, documentation and related
@@ -74,7 +74,6 @@
 #include "wiced_bt_stack.h"
 #include "wiced_transport.h"
 #include "wiced_hal_puart.h"
-#include "wiced_timer.h"
 #include "wiced_platform.h"
 
 #ifdef  WICED_BT_TRACE_ENABLE
@@ -204,7 +203,7 @@ extern wiced_led_config_t platform_led[];
 wiced_platform_led_t hello_sensor_led_pin = WICED_PLATFORM_LED_1;
 #endif
 
-#if defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20735B1) || defined(CYW20835B1) || defined(CYW20721B1) || defined(CYW20819A1)
+#if defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20735B1) || defined(CYW20835B1) || defined(CYW20721B1) || defined(CYW20819A1) || defined(CYW55572A1)
 extern wiced_platform_led_config_t platform_led[];
 extern size_t led_count;
 wiced_platform_led_number_t hello_sensor_led_pin = WICED_PLATFORM_LED_2;
@@ -220,7 +219,7 @@ wiced_platform_led_number_t hello_sensor_led_pin = WICED_PLATFORM_LED_2;
 #endif
 #endif
 
-#if defined(CYW20739B2)
+#if defined(CYW30739A0)
 extern wiced_platform_led_config_t platform_led[];
 extern size_t led_count;
 wiced_platform_led_number_t hello_sensor_led_pin = WICED_PLATFORM_LED_1;
@@ -248,19 +247,19 @@ wiced_bt_gatt_status_t          hello_sensor_gatts_callback( wiced_bt_gatt_evt_t
 static void                     hello_sensor_set_advertisement_data(void);
 void                            hello_sensor_send_message( void );
 static void                     hello_sensor_gatts_increment_notify_value( void );
-static void                     hello_sensor_timeout( uint32_t count );
-static void                     hello_sensor_fine_timeout( uint32_t finecount );
+static void                     hello_sensor_timeout( TIMER_PARAM_TYPE count );
+static void                     hello_sensor_fine_timeout( TIMER_PARAM_TYPE finecount );
 static void                     hello_sensor_smp_bond_result( uint8_t result );
 static void                     hello_sensor_encryption_changed( wiced_result_t result, uint8_t* bd_addr );
 static void                     hello_sensor_interrupt_handler(void* user_data, uint8_t value );
 static void                     hello_sensor_application_init( void );
-static void                     hello_sensor_conn_idle_timeout ( uint32_t arg );
+static void                     hello_sensor_conn_idle_timeout ( TIMER_PARAM_TYPE arg );
 #ifdef ENABLE_HCI_TRACE
 static void                     hello_sensor_hci_trace_cback( wiced_bt_hci_trace_type_t type, uint16_t length, uint8_t* p_data );
 #endif
 static void                     hello_sensor_load_keys_for_address_resolution( void );
 #ifndef CYW43012C0
-static void                     hello_sensor_led_timeout( uint32_t count );
+static void                     hello_sensor_led_timeout( TIMER_PARAM_TYPE count );
 void                            hello_sensor_led_blink(uint16_t on_ms, uint16_t off_ms, uint8_t num_of_blinks );
 static void                     hello_sensor_interrput_config (void);
 #endif
@@ -342,7 +341,9 @@ void hello_sensor_application_init( void )
     wiced_init_timer(&hello_sensor_second_timer, hello_sensor_timeout, 0, WICED_SECONDS_PERIODIC_TIMER);
     wiced_start_timer( &hello_sensor_second_timer, HELLO_SENSOR_APP_TIMEOUT_IN_SECONDS );
     wiced_init_timer(&hello_sensor_ms_timer, hello_sensor_fine_timeout, 0, WICED_MILLI_SECONDS_PERIODIC_TIMER);
-    wiced_start_timer( &hello_sensor_ms_timer, HELLO_SENSOR_APP_FINE_TIMEOUT_IN_MS );
+
+    // set fine timeout to 25ms, to accomodate 12.5ms min resolution on 20706A2
+    wiced_start_timer( &hello_sensor_ms_timer, 25 * HELLO_SENSOR_APP_FINE_TIMEOUT_IN_MS );
 
     /* init the idle timer (but do not start yet) */
     wiced_init_timer(&hello_sensor_conn_idle_timer, hello_sensor_conn_idle_timeout, 0, WICED_SECONDS_TIMER);
@@ -464,7 +465,7 @@ void hello_sensor_advertisement_stopped( void )
 /*
  * The function invoked on timeout of led timer.
  */
-void hello_sensor_led_timeout( uint32_t count )
+void hello_sensor_led_timeout( TIMER_PARAM_TYPE count )
 {
     static wiced_bool_t led_on = WICED_FALSE;
     if ( led_on )
@@ -490,7 +491,7 @@ void hello_sensor_led_timeout( uint32_t count )
 void hello_sensor_led_blink(uint16_t on_ms, uint16_t off_ms, uint8_t num_of_blinks )
 {
     if (num_of_blinks
-#if defined(CYW20735B1) || defined(CYW20835B1) || defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20721B1) || defined(CYW20721B2) || defined(CYW20819A1) || defined(CYW20739B2)
+#if defined(CYW20735B1) || defined(CYW20835B1) || defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20721B1) || defined(CYW20721B2) || defined(CYW20819A1) || defined(CYW30739A0) || defined(CYW55572A1)
             && hello_sensor_led_pin < led_count
 #endif
         )
@@ -508,9 +509,10 @@ void hello_sensor_led_blink(uint16_t on_ms, uint16_t off_ms, uint8_t num_of_blin
 /*
  * The function invoked on timeout of app seconds timer.
  */
-void hello_sensor_timeout( uint32_t count )
+void hello_sensor_timeout( TIMER_PARAM_TYPE count )
 {
     hello_sensor_state.timer_count++;
+
     // print for first 10 seconds, then once every 10 seconds thereafter
     if ((hello_sensor_state.timer_count <= 10) || (hello_sensor_state.timer_count % 10 == 0))
         WICED_BT_TRACE("hello_sensor_timeout: %d, ft:%d \n",
@@ -520,7 +522,7 @@ void hello_sensor_timeout( uint32_t count )
 /*
  * The function invoked on timeout of app milliseconds fine timer
  */
-void hello_sensor_fine_timeout( uint32_t finecount )
+void hello_sensor_fine_timeout( TIMER_PARAM_TYPE finecount )
 {
     hello_sensor_state.fine_timer_count++;
 }
@@ -603,7 +605,8 @@ void hello_sensor_interrupt_handler(void* user_data, uint8_t value )
 
     current_button_pressed_timer = hello_sensor_state.fine_timer_count;
 
-    if ((current_button_pressed_timer - previous_button_pressed_timer) > 1000)
+    // 50ms gap(2x25) to rid of any button signal bounce issues
+    if ((current_button_pressed_timer - previous_button_pressed_timer) > 2)
     {
         WICED_BT_TRACE("button pressed\n");
         previous_button_pressed_timer = current_button_pressed_timer;
@@ -659,7 +662,7 @@ void hello_sensor_interrupt_handler(void* user_data, uint8_t value )
 /*
  * Function on connection idle timeout initiates the gatt disconnect
  */
-void hello_sensor_conn_idle_timeout ( uint32_t arg )
+void hello_sensor_conn_idle_timeout ( TIMER_PARAM_TYPE arg )
 {
     WICED_BT_TRACE( "hello_sensor_conn_idle_timeout\n" );
 

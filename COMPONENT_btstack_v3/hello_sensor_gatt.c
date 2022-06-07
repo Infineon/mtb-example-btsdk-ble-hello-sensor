@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021, Cypress Semiconductor Corporation (an Infineon company) or
+ * Copyright 2016-2022, Cypress Semiconductor Corporation (an Infineon company) or
  * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
  *
  * This software, including source code, documentation and related
@@ -56,6 +56,9 @@
 #include "hello_sensor.h"
 
 /* Extern functions */
+#ifndef CYW43012C0
+void                     hello_sensor_led_blink(uint16_t on_ms, uint16_t off_ms, uint8_t num_of_blinks );
+#endif
 attribute_t * hello_sensor_get_attribute( uint16_t handle );
 void hello_sensor_send_message( void );
 wiced_bt_gatt_status_t hello_sensor_gatts_conn_status_cb( wiced_bt_gatt_connection_status_t *p_status );
@@ -337,6 +340,9 @@ wiced_bt_gatt_status_t hello_sensor_gatts_req_write_handler( uint16_t conn_id, w
         {
             WICED_BT_TRACE( "[%s] num blinks: %d\n", __FUNCTION__, hello_sensor_hostinfo.number_of_blinks );
             nv_update = WICED_TRUE;
+#ifndef CYW43012C0
+            hello_sensor_led_blink (250,250,hello_sensor_hostinfo.number_of_blinks);
+#endif
         }
         break;
 

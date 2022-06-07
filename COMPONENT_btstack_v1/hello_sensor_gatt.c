@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021, Cypress Semiconductor Corporation (an Infineon company) or
+ * Copyright 2016-2022, Cypress Semiconductor Corporation (an Infineon company) or
  * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
  *
  * This software, including source code, documentation and related
@@ -51,7 +51,7 @@
 #define WICED_GPIO_PIN_OUTPUT_HIGH GPIO_PIN_OUTPUT_HIGH
 #define WICED_GPIO_PIN_OUTPUT_LOW  GPIO_PIN_OUTPUT_LOW
 #include "wiced_gki.h"
-#if !defined(CYW20735B1) && !defined(CYW20835B1) && !defined(CYW20719B1) && !defined(CYW20721B1) && !defined(CYW20819A1) && !defined(CYW20719B2) && !defined(CYW20721B2) && !defined(CYW20739B2)
+#if !defined(CYW20735B1) && !defined(CYW20835B1) && !defined(CYW20719B1) && !defined(CYW20721B1) && !defined(CYW20819A1) && !defined(CYW20719B2) && !defined(CYW20721B2) && !defined(CYW30739A0)
 #include "wiced_bt_app_common.h"
 #endif
 
