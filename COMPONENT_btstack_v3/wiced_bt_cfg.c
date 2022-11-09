@@ -53,10 +53,10 @@
  * wiced_bt core stack configuration
  ****************************************************************************/
 
-/* BLE SCAN Setting */
+/* LE SCAN Setting */
 const wiced_bt_cfg_ble_scan_settings_t wiced_bt_cfg_scan_settings =
 {
-    .scan_mode                       = BTM_BLE_SCAN_MODE_ACTIVE,                                  /**< BLE scan mode (BTM_BLE_SCAN_MODE_PASSIVE, BTM_BLE_SCAN_MODE_ACTIVE, or BTM_BLE_SCAN_MODE_NONE) */
+    .scan_mode                       = BTM_BLE_SCAN_MODE_ACTIVE,                                  /**< LE scan mode (BTM_BLE_SCAN_MODE_PASSIVE, BTM_BLE_SCAN_MODE_ACTIVE, or BTM_BLE_SCAN_MODE_NONE) */
 
     /* Advertisement scan configuration */
     .high_duty_scan_interval         = WICED_BT_CFG_DEFAULT_HIGH_DUTY_SCAN_INTERVAL,               /**< High duty scan interval */
@@ -83,7 +83,7 @@ const wiced_bt_cfg_ble_scan_settings_t wiced_bt_cfg_scan_settings =
     .conn_supervision_timeout        = WICED_BT_CFG_DEFAULT_CONN_SUPERVISION_TIMEOUT,              /**< Connection link supervision timeout */
 };
 
-/* BLE ADV Setting */
+/* LE ADV Setting */
 const wiced_bt_cfg_ble_advert_settings_t wiced_bt_cfg_adv_settings =
 {
     .channel_map                     = BTM_BLE_ADVERT_CHNL_37 |                                    /**< Advertising channel map (mask of BTM_BLE_ADVERT_CHNL_37, BTM_BLE_ADVERT_CHNL_38, BTM_BLE_ADVERT_CHNL_39) */
@@ -114,7 +114,7 @@ const wiced_bt_cfg_ble_advert_settings_t wiced_bt_cfg_adv_settings =
     .low_duty_nonconn_duration       = 0                                                           /**< Low duty non-connectable advertising duration in seconds (0 for infinite) */
 };
 
-/* BLE Setting */
+/* LE Setting */
 const wiced_bt_cfg_ble_t wiced_bt_cfg_ble =
 {
     .ble_max_simultaneous_links = 1,

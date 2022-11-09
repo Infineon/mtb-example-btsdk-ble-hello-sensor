@@ -33,7 +33,7 @@
 
 /** @file
 *
-* BLE Vendor Specific Device
+* LE Vendor Specific Device
 *
 * This file provides definitions and function prototypes for Hello Sensor
 * device
@@ -57,7 +57,7 @@ typedef void (*pfn_free_buffer_t)(uint8_t *);
 #else // BTSTACK_VER
 
 #include "wiced_gki.h"
-#if !defined(CYW20735B1) && !defined(CYW20835B1) && !defined(CYW20719B1) && !defined(CYW20721B1) && !defined(CYW20819A1) && !defined(CYW20719B2) && !defined(CYW20721B2) && !defined(CYW30739A0)
+#if !defined(CYW20835B1) && !defined(CYW20719B1) && !defined(CYW20721B1) && !defined(CYW20819A1) && !defined(CYW20719B2) && !defined(CYW20721B2) && !defined(CYW30739A0)
 #include "wiced_bt_app_common.h"
 #include "wiced_bt_app_hal_common.h"
 #endif
@@ -98,19 +98,7 @@ extern size_t hello_sensor_gatt_database_size;
 #define HELLO_SENSOR_LED_GPIO        platform_led[hello_sensor_led_pin].led_gpio
 #endif
 
-#ifdef CYW20735B0
-#define HELLO_SENSOR_GPIO_BUTTON_SETTINGS        WICED_GPIO_BUTTON_SETTINGS
-#define HELLO_SENSOR_GPIO_BUTTON_PRESSED_VALUE   WICED_BUTTON_PRESSED_VALUE
-#define HELLO_SENSOR_LED_GPIO       WICED_GPIO_PIN_LED1
-#endif
-
-#ifdef CYW20719B0
-#define HELLO_SENSOR_GPIO_BUTTON_SETTINGS        WICED_GPIO_BUTTON_SETTINGS
-#define HELLO_SENSOR_GPIO_BUTTON_PRESSED_VALUE   WICED_BUTTON_PRESSED_VALUE
-#define HELLO_SENSOR_LED_GPIO       WICED_GPIO_PIN_LED1
-#endif
-
-#if defined(CYW20735B1) || defined(CYW20835B1) || defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20721B1) || defined(CYW20721B2) || defined(CYW20819A1) || defined(CYW30739A0) || defined(CYW55572)
+#if defined(CYW20835B1) || defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20721B1) || defined(CYW20721B2) || defined(CYW20819A1) || defined(CYW30739A0) || defined(CYW55572)
 #define HELLO_SENSOR_LED_GPIO        (uint32_t)*platform_led[hello_sensor_led_pin].gpio
 #endif
 

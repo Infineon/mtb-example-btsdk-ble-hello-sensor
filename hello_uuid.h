@@ -33,7 +33,7 @@
 
 /** @file
 *
-* BLE Hello Client/Sensor UUID
+* LE Hello Client/Sensor UUID
 *
 * This file provides UUID definitions for Hello Client/Sensor
 *

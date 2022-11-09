@@ -33,7 +33,7 @@
 
 /** @file
 *
-* BLE Vendor Specific Device
+* LE Vendor Specific Device
 *
 * During initialization the app registers with LE stack to receive various
 * notifications including bonding complete, connection status change and
@@ -203,7 +203,7 @@ extern wiced_led_config_t platform_led[];
 wiced_platform_led_t hello_sensor_led_pin = WICED_PLATFORM_LED_1;
 #endif
 
-#if defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20735B1) || defined(CYW20835B1) || defined(CYW20721B1) || defined(CYW20819A1) || defined(CYW55572A1)
+#if defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20835B1) || defined(CYW20721B1) || defined(CYW20819A1) || defined(CYW55572A1)
 extern wiced_platform_led_config_t platform_led[];
 extern size_t led_count;
 wiced_platform_led_number_t hello_sensor_led_pin = WICED_PLATFORM_LED_2;
@@ -271,7 +271,7 @@ static void                     hello_sensor_interrput_config (void);
 /*
  *  Entry point to the application. Set device configuration and start BT
  *  stack initialization.  The actual application initialization will happen
- *  when stack reports that BT device is ready.
+ *  when stack reports that Bluetooth device is ready.
  */
 APPLICATION_START( )
 {
@@ -287,7 +287,7 @@ APPLICATION_START( )
 #else
     // Set to PUART to see traces on peripheral uart(puart)
     wiced_set_debug_uart( WICED_ROUTE_DEBUG_TO_PUART );
-#if ( defined(CYW20706A2) || defined(CYW20735B0) || defined(CYW20719B0) || defined(CYW43012C0) )
+#if ( defined(CYW20706A2) || defined(CYW43012C0) )
     wiced_hal_puart_select_uart_pads( WICED_PUART_RXD, WICED_PUART_TXD, 0, 0);
 #endif
 #endif
@@ -351,7 +351,7 @@ void hello_sensor_application_init( void )
     /* Load previous paired keys for address resolution */
     hello_sensor_load_keys_for_address_resolution();
 
-#if defined(CYW20706A2) || defined(CYW20735B0)
+#if defined(CYW20706A2)
     /* Enable privacy to advertise with RPA */
     wiced_bt_ble_enable_privacy ( WICED_TRUE );
 #endif
@@ -381,12 +381,12 @@ void hello_sensor_application_init( void )
 #ifndef CYW43012C0
 static void hello_sensor_interrput_config (void)
 {
-#if defined(CYW20706A2) || defined(CYW20719B0)
+#if defined(CYW20706A2)
     wiced_bt_app_init();
 #endif
 
     /* Configure buttons available on the platform (pin should be configured before registering interrupt handler ) */
-#if defined(CYW20735B0) || defined(CYW20719B0) || defined(CYW20706A2)
+#if defined(CYW20706A2)
     wiced_hal_gpio_configure_pin( WICED_GPIO_PIN_BUTTON, HELLO_SENSOR_GPIO_BUTTON_SETTINGS, HELLO_SENSOR_GPIO_BUTTON_PRESSED_VALUE );
     wiced_hal_gpio_register_pin_for_interrupt( WICED_GPIO_PIN_BUTTON, hello_sensor_interrupt_handler, NULL );
 #else
@@ -491,7 +491,7 @@ void hello_sensor_led_timeout( TIMER_PARAM_TYPE count )
 void hello_sensor_led_blink(uint16_t on_ms, uint16_t off_ms, uint8_t num_of_blinks )
 {
     if (num_of_blinks
-#if defined(CYW20735B1) || defined(CYW20835B1) || defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20721B1) || defined(CYW20721B2) || defined(CYW20819A1) || defined(CYW30739A0) || defined(CYW55572A1)
+#if defined(CYW20835B1) || defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20721B1) || defined(CYW20721B2) || defined(CYW20819A1) || defined(CYW30739A0) || defined(CYW55572A1)
             && hello_sensor_led_pin < led_count
 #endif
         )
@@ -675,7 +675,7 @@ void hello_sensor_conn_idle_timeout ( TIMER_PARAM_TYPE arg )
 }
 
 /*
- * hello_sensor bt/ble link management callback
+ * hello_sensor device and link management callback
  */
 wiced_result_t hello_sensor_management_cback( wiced_bt_management_evt_t event, wiced_bt_management_evt_data_t *p_event_data )
 {
