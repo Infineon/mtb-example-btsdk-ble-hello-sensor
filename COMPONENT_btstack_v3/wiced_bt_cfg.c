@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2022, Cypress Semiconductor Corporation (an Infineon company) or
+ * Copyright 2016-2023, Cypress Semiconductor Corporation (an Infineon company) or
  * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
  *
  * This software, including source code, documentation and related
@@ -153,12 +153,19 @@ const wiced_transport_cfg_t transport_cfg =
             .baud_rate =  HCI_UART_DEFAULT_BAUD
         },
     },
+#ifdef NEW_DYNAMIC_MEMORY_INCLUDED
     .heap_config =
     {
         .data_heap_size = 1024 * 4 + 1500 * 2,
         .hci_trace_heap_size = 1024 * 2,
         .debug_trace_heap_size = 1024,
     },
+#else
+    .rx_buff_pool_cfg = {
+        .buffer_size = 0,
+        .buffer_count = 0,
+    },
+#endif
     .p_status_handler = NULL,
     .p_data_handler = NULL,
     .p_tx_complete_cback = NULL

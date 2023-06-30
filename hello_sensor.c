@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2022, Cypress Semiconductor Corporation (an Infineon company) or
+ * Copyright 2016-2023, Cypress Semiconductor Corporation (an Infineon company) or
  * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
  *
  * This software, including source code, documentation and related
@@ -203,7 +203,7 @@ extern wiced_led_config_t platform_led[];
 wiced_platform_led_t hello_sensor_led_pin = WICED_PLATFORM_LED_1;
 #endif
 
-#if defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20835B1) || defined(CYW20721B1) || defined(CYW20819A1) || defined(CYW55572A1)
+#if defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20835B1) || defined(CYW20721B1) || defined(CYW20819A1) || defined(CYW55572A1) || defined(CYW43022C1)
 extern wiced_platform_led_config_t platform_led[];
 extern size_t led_count;
 wiced_platform_led_number_t hello_sensor_led_pin = WICED_PLATFORM_LED_2;
@@ -223,6 +223,10 @@ wiced_platform_led_number_t hello_sensor_led_pin = WICED_PLATFORM_LED_2;
 extern wiced_platform_led_config_t platform_led[];
 extern size_t led_count;
 wiced_platform_led_number_t hello_sensor_led_pin = WICED_PLATFORM_LED_1;
+#endif
+
+#if defined(CYW43022C1)
+void debug_uart_set_baudrate(uint32_t baud_rate);
 #endif
 
 wiced_bt_gpio_numbers_t led_pin;
@@ -258,12 +262,9 @@ static void                     hello_sensor_conn_idle_timeout ( TIMER_PARAM_TYP
 static void                     hello_sensor_hci_trace_cback( wiced_bt_hci_trace_type_t type, uint16_t length, uint8_t* p_data );
 #endif
 static void                     hello_sensor_load_keys_for_address_resolution( void );
-#ifndef CYW43012C0
 static void                     hello_sensor_led_timeout( TIMER_PARAM_TYPE count );
 void                            hello_sensor_led_blink(uint16_t on_ms, uint16_t off_ms, uint8_t num_of_blinks );
-static void                     hello_sensor_interrput_config (void);
-#endif
-
+static void                     hello_sensor_interrupt_config (void);
 
 /******************************************************************************
  *                          Function Definitions
@@ -285,10 +286,22 @@ APPLICATION_START( )
     // Set to HCI to see traces on HCI uart - default if no call to wiced_set_debug_uart()
     wiced_set_debug_uart( WICED_ROUTE_DEBUG_TO_WICED_UART );
 #else
+#if defined(CYW43022C1)
+    // 43022 transport clock rate is 24Mhz for baud rates <= 1.5 Mbit/sec, and 48Mhz for baud rates > 1.5 Mbit/sec.
+    // HCI UART and Debug UART both use the Transport clock, so if the HCI UART rate is <= 1.5 Mbps, please do not set the Debug UART > 1.5 Mbps.
+    // The default Debug UART baud rate is 115200, and default HCI UART baud rate is 3Mbps
+    debug_uart_set_baudrate(115200);
+
+    // CYW943022M2BTBGA doesn't have GPIO pin for PUART.
+    // CYW943022M2BTBGA Debug UART Tx (WICED_GPIO_02) is connected to UART2_RX (ARD_D1) on PUART Level Translators of CYW9BTM2BASE1.
+    // We need to set to WICED_ROUTE_DEBUG_TO_DBG_UART to see traces on PUART of CYW9BTM2BASE1.
+    wiced_set_debug_uart( WICED_ROUTE_DEBUG_TO_DBG_UART );
+#else
     // Set to PUART to see traces on peripheral uart(puart)
     wiced_set_debug_uart( WICED_ROUTE_DEBUG_TO_PUART );
-#if ( defined(CYW20706A2) || defined(CYW43012C0) )
+#if defined(CYW20706A2)
     wiced_hal_puart_select_uart_pads( WICED_PUART_RXD, WICED_PUART_TXD, 0, 0);
+#endif
 #endif
 #endif
 
@@ -321,14 +334,11 @@ APPLICATION_START( )
  */
 void hello_sensor_application_init( void )
 {
-
     wiced_result_t         result;
 
     WICED_BT_TRACE( "hello_sensor_application_init\n" );
 
-#ifndef CYW43012C0
-    hello_sensor_interrput_config();
-#endif
+    hello_sensor_interrupt_config();
 
     // init gatt
     hello_sensor_gatt_init();
@@ -369,17 +379,25 @@ void hello_sensor_application_init( void )
      * Reset flag to 0, to disconnect
      */
     hello_sensor_state.flag_stay_connected = 1;
-#ifndef CYW43012C0
+
 #ifdef CYW20706A2
     platform_led_init();
 #endif
     wiced_init_timer(&hello_sensor_led_timer, hello_sensor_led_timeout, 0, WICED_MILLI_SECONDS_TIMER);
+#if defined(CYW43022C1)
+    /* Configure LED1 on the platform */
+    // Set WICED_BT_GPIO_03 (J4, pin 7) as LED1 (J11, pin 2) connected to
+    led_pin = WICED_GPIO_03;
+    wiced_hal_gpio_select_function(led_pin, WICED_GPIO);
+    wiced_hal_gpio_configure_pin(led_pin, GPIO_OUTPUT_ENABLE, GPIO_PIN_OUTPUT_HIGH );
+#else
     led_pin = HELLO_SENSOR_LED_GPIO;
 #endif
+
+
 }
 
-#ifndef CYW43012C0
-static void hello_sensor_interrput_config (void)
+static void hello_sensor_interrupt_config (void)
 {
 #if defined(CYW20706A2)
     wiced_bt_app_init();
@@ -390,11 +408,19 @@ static void hello_sensor_interrput_config (void)
     wiced_hal_gpio_configure_pin( WICED_GPIO_PIN_BUTTON, HELLO_SENSOR_GPIO_BUTTON_SETTINGS, HELLO_SENSOR_GPIO_BUTTON_PRESSED_VALUE );
     wiced_hal_gpio_register_pin_for_interrupt( WICED_GPIO_PIN_BUTTON, hello_sensor_interrupt_handler, NULL );
 #else
+#if defined(CYW43022C1)
+    /* Configure buttons available on the platform */
+    // Set WICED_BT_GPIO_04 (J4, pin SDA) as User button (J12, pin 1) connected to
+    wiced_hal_gpio_select_function(WICED_GPIO_04, WICED_GPIO);
+    wiced_hal_gpio_configure_pin(WICED_GPIO_04, GPIO_INPUT_ENABLE | WICED_GPIO_EN_INT_RISING_EDGE, 1);
+    wiced_hal_gpio_register_pin_for_interrupt(WICED_GPIO_04, hello_sensor_interrupt_handler, NULL);
+#else
     /* Configure buttons available on the platform */
     wiced_platform_register_button_callback( WICED_PLATFORM_BUTTON_1, hello_sensor_interrupt_handler, NULL, WICED_PLATFORM_BUTTON_RISING_EDGE);
 #endif
-}
 #endif
+}
+
 
 /*
  *  Pass protocol traces up through the UART
@@ -402,11 +428,15 @@ static void hello_sensor_interrput_config (void)
 #ifdef ENABLE_HCI_TRACE
 void hello_sensor_hci_trace_cback( wiced_bt_hci_trace_type_t type, uint16_t length, uint8_t* p_data )
 {
+ // Can write HCI event data to PUART for debug purpose
+ // WICED_BT_TRACE( "HCI event type %d len %d\n", type,length );
+ // WICED_BT_TRACE_ARRAY( p_data, length, "" );
+
     //send the trace
- #if BTSTACK_VER >= 0x03000001
+ #ifdef NEW_DYNAMIC_MEMORY_INCLUDED
     wiced_transport_send_hci_trace( type, p_data, length );
  #else
-    wiced_transport_send_hci_trace( NULL, type, length, p_data );
+	wiced_transport_send_hci_trace( NULL, type, length, p_data );
  #endif
 }
 #endif
@@ -461,7 +491,6 @@ void hello_sensor_advertisement_stopped( void )
     UNUSED_VARIABLE(result);
 }
 
-#ifndef CYW43012C0
 /*
  * The function invoked on timeout of led timer.
  */
@@ -504,7 +533,6 @@ void hello_sensor_led_blink(uint16_t on_ms, uint16_t off_ms, uint8_t num_of_blin
         wiced_start_timer(&hello_sensor_led_timer,on_ms);
     }
 }
-#endif
 
 /*
  * The function invoked on timeout of app seconds timer.
@@ -589,7 +617,6 @@ void hello_sensor_encryption_changed( wiced_result_t result, uint8_t* bd_addr )
     }
 }
 
-#ifndef CYW43012C0
 /*
  * Three Interrupt inputs (Buttons) can be handled here.
  * If the following value == 1, Button is pressed. Different than initial value.
@@ -657,7 +684,6 @@ void hello_sensor_interrupt_handler(void* user_data, uint8_t value )
         }
     }
 }
-#endif
 
 /*
  * Function on connection idle timeout initiates the gatt disconnect
@@ -686,7 +712,7 @@ wiced_result_t hello_sensor_management_cback( wiced_bt_management_evt_t event, w
     uint8_t                             *p_keys;
     wiced_result_t                      result = WICED_BT_SUCCESS;
 
-    WICED_BT_TRACE("hello_sensor_management_cback: %x\n", event );
+    WICED_BT_TRACE("hello_sensor_management_cback: 0x%x\n", event );
 
     switch( event )
     {
