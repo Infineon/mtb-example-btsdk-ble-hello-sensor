@@ -24,6 +24,8 @@ To demonstrate the app, work through the following steps:
 8. For 20721B2 based AIROC&#8482; kits, use the Custom button on audio shield board as application button rather than the button on the base board.
 
 ## Additional Notes:
+This application demonstrates link key storage for one device at a time, using one VS_ID to store in NVRAM, meaning that if a second device is paired, it will overwrite the key of the first device. To support multiple concurrent pairings, additional VS_IDs can be implemented and managed to store the number of keys needed, or key storage could be handled by an external host. Note: devices with BTSTACK version 1 also store paired devices in RAM, which is available only until the device is reset.  Applications should not rely on that, only pairings that are stored in NVRAM persist across device resets.
+
 The CYW920835M2EVB-01 is used without an audio shield board and the User button is configured for input by default.
 The CYW955572BTEVK-01 is used with the audio shield board and the CUSTOM button on the shield board is configured for input by default.
 The CYW943022BTEVK-01 needs the following fly-wiring for the LED1 and user button to work:
@@ -371,3 +373,6 @@ BTSDK API documentation is available [online](https://infineon.github.io/btsdk-d
 Note: For offline viewing, git clone the [documentation repo](https://github.com/Infineon/btsdk-docs)
 
 BTSDK Technical Brief and Release Notes are available [online](https://community.infineon.com/t5/Bluetooth-SDK/bd-p/ModusToolboxBluetoothSDK)
+
+<br>
+<sup>The Bluetooth&#174; word mark and logos are registered trademarks owned by Bluetooth SIG, Inc., and any use of such marks by Infineon is under license.</sup>

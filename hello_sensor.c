@@ -574,6 +574,8 @@ void hello_sensor_smp_bond_result( uint8_t result )
         memcpy( hello_sensor_hostinfo.bdaddr, hello_sensor_state.remote_addr, sizeof( BD_ADDR ) );
 
         /* Write to NVRAM */
+        /* using single VS_ID to support storing only one paired device */
+        /* see README for multiple concurrent pairing support */
         written_byte = wiced_hal_write_nvram( HELLO_SENSOR_VS_ID, sizeof(hello_sensor_hostinfo), (uint8_t*)&hello_sensor_hostinfo, &status );
         WICED_BT_TRACE("NVRAM write: %d\n", written_byte);
     }
@@ -594,6 +596,8 @@ void hello_sensor_encryption_changed( wiced_result_t result, uint8_t* bd_addr )
     /* Connection has been encrypted meaning that we have correct/paired device
      * restore values in the database
      */
+    /* using single VS_ID to support storing only one paired device */
+    /* see README for multiple concurrent pairing support */
     wiced_hal_read_nvram( HELLO_SENSOR_VS_ID, sizeof(hello_sensor_hostinfo), (uint8_t*)&hello_sensor_hostinfo, &result );
 
     // If there are outstanding messages that we could not send out because
@@ -751,6 +755,8 @@ wiced_result_t hello_sensor_management_cback( wiced_bt_management_evt_t event, w
 
         case BTM_PAIRED_DEVICE_LINK_KEYS_UPDATE_EVT:
             /* save keys to NVRAM */
+            /* using single VS_ID to support storing only one paired device */
+            /* see README for multiple concurrent pairing support */
             p_keys = (uint8_t*)&p_event_data->paired_device_link_keys_update;
             wiced_hal_write_nvram ( HELLO_SENSOR_PAIRED_KEYS_VS_ID, sizeof( wiced_bt_device_link_keys_t ), p_keys ,&result );
             WICED_BT_TRACE("keys save to NVRAM %B result: %d \n", p_keys, result);
@@ -760,6 +766,8 @@ wiced_result_t hello_sensor_management_cback( wiced_bt_management_evt_t event, w
             {
                 wiced_bt_device_link_keys_t link_keys;
                 p_keys = (uint8_t *)&p_event_data->paired_device_link_keys_request;
+                /* using single VS_ID to support storing only one paired device */
+                /* see README for multiple concurrent pairing support */
                 wiced_hal_read_nvram( HELLO_SENSOR_PAIRED_KEYS_VS_ID,
                                       sizeof(wiced_bt_device_link_keys_t),
                                       (uint8_t *)&link_keys,
@@ -785,6 +793,8 @@ wiced_result_t hello_sensor_management_cback( wiced_bt_management_evt_t event, w
 
         case BTM_LOCAL_IDENTITY_KEYS_UPDATE_EVT:
             /* save keys to NVRAM */
+            /* using single VS_ID to support storing only one paired device */
+            /* see README for multiple concurrent pairing support */
             p_keys = (uint8_t*)&p_event_data->local_identity_keys_update;
             wiced_hal_write_nvram ( HELLO_SENSOR_LOCAL_KEYS_VS_ID, sizeof( wiced_bt_local_identity_keys_t ), p_keys ,&result );
             WICED_BT_TRACE("local keys save to NVRAM result: %d \n", result);
@@ -792,6 +802,8 @@ wiced_result_t hello_sensor_management_cback( wiced_bt_management_evt_t event, w
 
         case  BTM_LOCAL_IDENTITY_KEYS_REQUEST_EVT:
             /* read keys from NVRAM */
+            /* using single VS_ID to support storing only one paired device */
+            /* see README for multiple concurrent pairing support */
             p_keys = (uint8_t *)&p_event_data->local_identity_keys_request;
             wiced_hal_read_nvram( HELLO_SENSOR_LOCAL_KEYS_VS_ID, sizeof(wiced_bt_local_identity_keys_t), p_keys, &result );
             WICED_BT_TRACE("local keys read from NVRAM result: %d \n",  result);
@@ -894,6 +906,8 @@ wiced_bt_gatt_status_t hello_sensor_gatts_connection_up( wiced_bt_gatt_connectio
 
     {
         uint8_t bytes_written = 0;
+        /* using single VS_ID to support storing only one paired device */
+        /* see README for multiple concurrent pairing support */
         bytes_written = wiced_hal_write_nvram( HELLO_SENSOR_VS_ID, sizeof(hello_sensor_hostinfo), (uint8_t*)&hello_sensor_hostinfo, &result );
 
         WICED_BT_TRACE("NVRAM write %d\n", bytes_written);
@@ -972,6 +986,8 @@ static void hello_sensor_load_keys_for_address_resolution( void )
 
     memset( &link_keys, 0, sizeof(wiced_bt_device_link_keys_t));
     p = (uint8_t*)&link_keys;
+    /* using single VS_ID to support storing only one paired device */
+    /* see README for multiple concurrent pairing support */
     wiced_hal_read_nvram( HELLO_SENSOR_PAIRED_KEYS_VS_ID, sizeof(wiced_bt_device_link_keys_t), p, &result);
 
     if(result == WICED_BT_SUCCESS)
