@@ -225,10 +225,6 @@ extern size_t led_count;
 wiced_platform_led_number_t hello_sensor_led_pin = WICED_PLATFORM_LED_1;
 #endif
 
-#if defined(CYW43022C1)
-void debug_uart_set_baudrate(uint32_t baud_rate);
-#endif
-
 wiced_bt_gpio_numbers_t led_pin;
 
 /* Attribute list of the hello sensor */
@@ -387,7 +383,7 @@ void hello_sensor_application_init( void )
 #if defined(CYW43022C1)
     /* Configure LED1 on the platform */
     // Set WICED_BT_GPIO_03 (J4, pin 7) as LED1 (J11, pin 2) connected to
-    led_pin = WICED_GPIO_03;
+    led_pin = WICED_GPIO_PIN_LED_1;
     wiced_hal_gpio_select_function(led_pin, WICED_GPIO);
     wiced_hal_gpio_configure_pin(led_pin, GPIO_OUTPUT_ENABLE, GPIO_PIN_OUTPUT_HIGH );
 #else
@@ -411,9 +407,9 @@ static void hello_sensor_interrupt_config (void)
 #if defined(CYW43022C1)
     /* Configure buttons available on the platform */
     // Set WICED_BT_GPIO_04 (J4, pin SDA) as User button (J12, pin 1) connected to
-    wiced_hal_gpio_select_function(WICED_GPIO_04, WICED_GPIO);
-    wiced_hal_gpio_configure_pin(WICED_GPIO_04, GPIO_INPUT_ENABLE | WICED_GPIO_EN_INT_RISING_EDGE, 1);
-    wiced_hal_gpio_register_pin_for_interrupt(WICED_GPIO_04, hello_sensor_interrupt_handler, NULL);
+    wiced_hal_gpio_select_function(WICED_PLATFORM_BUTTON_1, WICED_GPIO);
+    wiced_hal_gpio_configure_pin(WICED_PLATFORM_BUTTON_1, GPIO_INPUT_ENABLE | WICED_GPIO_EN_INT_RISING_EDGE, 1);
+    wiced_hal_gpio_register_pin_for_interrupt(WICED_PLATFORM_BUTTON_1, hello_sensor_interrupt_handler, NULL);
 #else
     /* Configure buttons available on the platform */
     wiced_platform_register_button_callback( WICED_PLATFORM_BUTTON_1, hello_sensor_interrupt_handler, NULL, WICED_PLATFORM_BUTTON_RISING_EDGE);
