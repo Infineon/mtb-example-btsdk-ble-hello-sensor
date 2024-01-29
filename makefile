@@ -1,5 +1,5 @@
 #
-# Copyright 2016-2023, Cypress Semiconductor Corporation (an Infineon company) or
+# Copyright 2016-2024, Cypress Semiconductor Corporation (an Infineon company) or
 # an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
 #
 # This software, including source code, documentation and related
@@ -114,7 +114,7 @@ CY_APP_DEFINES+=-DENABLE_DEBUG=1
 endif
 
 CY_APP_DEFINES+=\
-    -DWICED_BT_TRACE_ENABLE -DDEV_NAME=\"$(APP_NAME)\"
+    -DWICED_BT_TRACE_ENABLE -DDEV_NAME='"$(APP_NAME)"'
 
 #
 # Components (middleware libraries)
