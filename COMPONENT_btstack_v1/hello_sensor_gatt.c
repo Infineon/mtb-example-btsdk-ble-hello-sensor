@@ -61,6 +61,10 @@
 #include "wiced_timer.h"
 #include "hello_sensor.h"
 
+#ifdef COMPONENT_nvram_emulation
+    #include "nvram_emulation_mem.h"
+#endif
+
 /* Extern Functions */
 void                     hello_sensor_led_blink(uint16_t on_ms, uint16_t off_ms, uint8_t num_of_blinks );
 attribute_t * hello_sensor_get_attribute( uint16_t handle );

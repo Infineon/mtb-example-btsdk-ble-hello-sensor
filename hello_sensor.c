@@ -83,6 +83,9 @@
 #include "hello_uuid.h"
 #include "hello_sensor.h"
 
+#ifdef COMPONENT_nvram_emulation
+    #include "nvram_emulation_mem.h"
+#endif
 
 // #define ENABLE_HCI_TRACE 1 // configures HCI traces to be routed to the WICED HCI interface
 /******************************************************************************
@@ -323,6 +326,9 @@ APPLICATION_START( )
 #else
     wiced_bt_stack_init(hello_sensor_management_cback, &wiced_bt_cfg_settings, wiced_bt_cfg_buf_pools);
 #endif
+#ifdef COMPONENT_nvram_emulation
+    nvram_emulation_mem_init();
+#endif
 }
 
 /*
@@ -432,7 +438,7 @@ void hello_sensor_hci_trace_cback( wiced_bt_hci_trace_type_t type, uint16_t leng
  #ifdef NEW_DYNAMIC_MEMORY_INCLUDED
     wiced_transport_send_hci_trace( type, p_data, length );
  #else
-	wiced_transport_send_hci_trace( NULL, type, length, p_data );
+    wiced_transport_send_hci_trace( NULL, type, length, p_data );
  #endif
 }
 #endif
@@ -996,3 +1002,81 @@ static void hello_sensor_load_keys_for_address_resolution( void )
     }
     WICED_BT_TRACE("hello_sensor_load_keys_for_address_resolution %B result:%d \n", p, result );
 }
+
+/*
+ * hci_control_transport_status.
+ * Called when Transport is ready to tell host that device is started
+ */
+#if defined(COMPONENT_nvram_emulation) && NVRAM_EMULATION_HCI
+
+void hci_control_transport_status( wiced_transport_type_t type )
+{
+    WICED_BT_TRACE( "[%s] transport %x \n", __FUNCTION__, type );
+    nvram_emulation_transport_status_handler(WICED_TRANSPORT_UART);
+}
+
+
+/*
+ * hci_control_tx_complete
+ * This function is called when a Transport Buffer has been sent to the MCU
+ */
+void hci_control_tx_complete(wiced_transport_buffer_pool_t* p_pool)
+{
+    WICED_BT_TRACE( "[%s] pool 0x%x \n", __FUNCTION__, p_pool );
+    /* no call to nvram emulation needed */
+}
+
+/*
+ * Handle received command over UART.
+ * Please refer to https://infineon.github.io/btsdk-docs/BT-SDK/AIROC-HCI-Control-Protocol.pdf
+ * for details on the HCI UART control protocol.
+*/
+uint32_t hci_control_process_rx( uint8_t *p_buffer, uint32_t length )
+{
+    uint16_t opcode;
+    uint32_t i, result;
+    uint8_t  tx_buf[15];
+    uint8_t  cmd = 0;
+    uint32_t chip = CHIP;
+
+    WICED_BT_TRACE( "[%s] %d bytes: ", __FUNCTION__, length);
+    for(i = 0; i < length; i++)
+    {
+        WICED_BT_TRACE( "%02x ", p_buffer[i]);
+    }
+    WICED_BT_TRACE( "\n");
+
+    /* pass received packets to nvram emulation for handling */
+    result = nvram_emulation_transport_rx_data_handler(p_buffer, length);
+
+    /* packets processed by nvram_emulation are freed and return value is HCI_CONTROL_STATUS_SUCCESS */
+    /* otherwise, more processing is needed */
+    if(result != HCI_CONTROL_STATUS_SUCCESS)
+    {
+        if(length >= 4)
+        {
+            opcode = p_buffer[0] + ( p_buffer[1] << 8 );
+            if(opcode == HCI_CONTROL_MISC_COMMAND_GET_VERSION)
+            {
+                tx_buf[cmd++] = WICED_SDK_MAJOR_VER;
+                tx_buf[cmd++] = WICED_SDK_MINOR_VER;
+                tx_buf[cmd++] = WICED_SDK_REV_NUMBER;
+                tx_buf[cmd++] = WICED_SDK_BUILD_NUMBER & 0xFF;
+                tx_buf[cmd++] = (WICED_SDK_BUILD_NUMBER>>8) & 0xFF;
+                tx_buf[cmd++] = chip & 0xFF;
+                tx_buf[cmd++] = (chip>>8) & 0xFF;
+                tx_buf[cmd++] = (chip>>24) & 0xFF;
+                tx_buf[cmd++] = 0; // not used
+
+                /* Send MCU app the supported features */
+                tx_buf[cmd++] = HCI_CONTROL_GROUP_DEVICE;
+
+                wiced_transport_send_data( HCI_CONTROL_MISC_EVENT_VERSION, tx_buf, cmd );
+            }
+        }
+        // Freeing the buffer in which data is received
+        wiced_transport_free_buffer(p_buffer);
+    }
+    return result;
+}
+#endif

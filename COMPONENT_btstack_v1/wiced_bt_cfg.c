@@ -188,10 +188,19 @@ const wiced_bt_cfg_settings_t wiced_bt_cfg_settings =
     .max_pwr_db_val                     = 12                                                           /**< Max. power level of the device */
 #else
     /* Maximum number of buffer pools */
+#ifdef COMPONENT_nvram_emulation
+    /* increase to allow nvram emulation to create more buffer pools */
+    .max_number_of_buffer_pools         = 4 + 4,                                                       /**< Maximum number of buffer pools in p_btm_cfg_buf_pools and by wiced_create_pool */
+#else
     .max_number_of_buffer_pools         = 4,                                                           /**< Maximum number of buffer pools in p_btm_cfg_buf_pools and by wiced_create_pool */
+#endif
 
     /* Interval of  random address refreshing */
+#if defined(COMPONENT_nvram_emulation)
+    .rpa_refresh_timeout                = WICED_BT_CFG_DEFAULT_RANDOM_ADDRESS_NEVER_CHANGE,            /**< Never refresh random address */
+#else
     .rpa_refresh_timeout                = WICED_BT_CFG_DEFAULT_RANDOM_ADDRESS_CHANGE_TIMEOUT,          /**< Interval of  random address refreshing - secs */
+#endif
     /* LE Filter Accept List size */
     .ble_filter_accept_list_size                = 0,                                                           /**< Maximum number of Filter Accept List devices allowed. Cannot be more than 128 */
 #endif
@@ -219,6 +228,39 @@ const wiced_bt_cfg_buf_pool_t wiced_bt_cfg_buf_pools[WICED_BT_CFG_NUM_BUF_POOLS]
 };
 
 /* transport configuration */
+#if defined(COMPONENT_nvram_emulation) && NVRAM_EMULATION_HCI
+/* configure for HCI backup to Host MCU with NVRAM_EMULATION_HCI */
+
+/* application callback handlers for HCI transport */
+void hci_control_transport_status( wiced_transport_type_t type );
+uint32_t hci_control_process_rx( uint8_t *p_buffer, uint32_t length );
+void hci_control_tx_complete(wiced_transport_buffer_pool_t* p_pool);
+
+const wiced_transport_cfg_t transport_cfg =
+{
+    .type = WICED_TRANSPORT_UART,
+    .cfg =
+    {
+        .uart_cfg =
+        {
+            .mode = WICED_TRANSPORT_UART_HCI_MODE,
+            .baud_rate =  HCI_UART_DEFAULT_BAUD
+        },
+    },
+    /* buffers used to receive HCI packets */
+    .rx_buff_pool_cfg =
+    {
+        .buffer_size = 1024,
+        .buffer_count = 2
+    },
+    /* transport callback handlers that can call corresponding nvram emulation handlers */
+    .p_status_handler = hci_control_transport_status,
+    .p_data_handler = hci_control_process_rx,
+    .p_tx_complete_cback = hci_control_tx_complete
+};
+
+#else
+void hci_control_transport_status( wiced_transport_type_t type );
 const wiced_transport_cfg_t transport_cfg =
 {
     .type = WICED_TRANSPORT_UART,
@@ -239,3 +281,4 @@ const wiced_transport_cfg_t transport_cfg =
     .p_data_handler = NULL,
     .p_tx_complete_cback = NULL
 };
+#endif

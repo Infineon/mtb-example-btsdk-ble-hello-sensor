@@ -27,6 +27,21 @@ To demonstrate the app, work through the following steps:
 This application demonstrates link key storage for one device at a time, using one VS_ID to store in NVRAM, meaning that if a second device is paired, it will overwrite the key of the first device. To support multiple concurrent pairings, additional VS_IDs can be implemented and managed to store the number of keys needed, or key storage could be handled by an external host. Note: devices with BTSTACK version 1 also store paired devices in RAM, which is available only until the device is reset.  Applications should not rely on that, only pairings that are stored in NVRAM persist across device resets.
 
 The CYW920835M2EVB-01 is used without an audio shield board and the User button is configured for input by default.
+
+The CYW920835M2EVB-01 and CYW955513EVK-01 kits can use the btsdk-driver library component nvram_emulation to demonstrate key storage without using flash. Use the library-manager tool to add the btsdk-drivers library to this app to get started. See the btsdk-drivers/COMPONENT_nvram_emulation/readme.txt for further details. After enabling DIRECT_LOAD=1 (for 20835), NVRAM_EMULATION, NVRAM_EMULATION_HCI, and ENABLE_HCI_TRACE in the application makefile, build and program the app to the kit.
+
+Use the "nvram_emulation_backup.py" script provided with the nvram_emulation library to demonstrate host nvram backup via HCI to a file "nvram.json". See the instructions in btsdk-drivers/COMPONENT_nvram_emulation/readme.txt on how to use the scipt to show a power loss and recovery of the emulated nvram data. For hello_sensor, follow these steps:
+
+1. Start from a clean state: delete nvram.json and forget any pairing keys in the peer Bluetooth device. See instructions in btsdk-drivers/COMPONENT_nvram_emulation/readme.txt to erase real nvram if the kit includes it.
+2. Build the app with the nvram emulation library and DIRECT_LOAD=1, NVRAM_EMULATION=1, and NVRAM_EMULATION_HCI=1 in the makefile.
+3. Program the app to the kit.
+4. Run the script to restore any previous nvram. If any nvram items are restored the script will show "sent nvram backup restore" in the script console output.
+5. The app starts up advertising, so a phone can be connected to "Hello" with a phone app like LightBlue or AIROC Connect. If Notifications are enabled in the phone app, the phone will request to pair with the app. Accept and observe the script will show nvram is updated with HELLO_SENSOR_PAIRED_KEYS_VS_ID (0x202).
+7. Simulate a power failure by diconnecting from "Hello" with the phone app, quitting the script (Ctrl-c), and removing power from the kit.
+8. Restore power to the kit and resume the application by Recovery Reset and programming the app to the kit.
+9. Run the script to restore the nvram state previous to the power removal.
+10. Resume operation with the phone and re-connect to "Hello". Again enable Notifications in the phone app. This time the phone will not need to re-pair with the app. The pairing keys have been restored from backup via HCI.
+
 The CYW955572BTEVK-01 is used with the audio shield board and the CUSTOM button on the shield board is configured for input by default.
 The CYW943022BTEVK-01 needs the following fly-wiring for the LED1 and user button to work:
      LED1: Connect (J4, D7) to LED1 (J11, pin 2)
@@ -60,7 +75,7 @@ Application settings below are common for all BTSDK applications and can be conf
 > For HW debugging, configure ENABLE\_DEBUG=1. See the document [AIROC&#8482;-Hardware-Debugging](https://infineon.github.io/btsdk-docs/BT-SDK/AIROC-Hardware-Debugging.pdf) for more information. This setting configures GPIO for SWD.<br>
 >
    - CYW920819EVB-02/CYW920820EVB-02: SWD signals are shared with D4 and D5, see SW9 in schematics.
-   - CYBT-213043-MESH/CYBT-213043-EVAL/CYBT-253059-EVAL: SWD signals are routed to P12=SWDCK and P13=SWDIO. Use expansion connectors to connect VDD, GND, SWDCK, and SWDIO to your SWD Debugger probe.
+   - CYBT-213043-EVAL/CYBT-253059-EVAL: SWD signals are routed to P12=SWDCK and P13=SWDIO. Use expansion connectors to connect VDD, GND, SWDCK, and SWDIO to your SWD Debugger probe.
    - CYBT-223058-EVAL/CYW920835M2EVB-01/CYBT-243053-EVAL/CYBLE-343072-EVAL-M2B/CYBLE-333074-EVAL-M2B/CYBLE-343072-MESH/Vela-IF820-INT-ANT-DVK/Vela-IF820-EXT-ANT-DVK: SWD signals are routed to P02=SWDCK and P03=SWDIO. Use expansion connectors to connect VDD, GND, SWDCK, and SWDIO to your SWD Debugger probe.
    - CYBT-263065-EVAL/CYBT-273063-EVAL: SWD signals are routed to P02=SWDCK and P04=SWDIO. Use expansion connectors to connect VDD, GND, SWDCK, and SWDIO to your SWD Debugger probe.
    - CYBT-343026-EVAL/CYBT-353027-EVAL/CYBT-333047-EVAL: SWD signals are routed to P11=SWDCK and P15=SWDIO. Use expansion connectors to connect VDD, GND, SWDCK, and SWDIO to your SWD Debugger probe.
@@ -172,7 +187,7 @@ Note: this is a list of all features and profiles supported in BTSDK, but some A
 ## List of boards available for use with BTSDK
 
 - [CYW20819A1 chip](https://github.com/Infineon/20819A1)
-    - [CYW920819EVB-02](https://github.com/Infineon/TARGET_CYW920819EVB-02), [CYW920819M2EVB-01](https://github.com/Infineon/TARGET_CYW920819M2EVB-01), [CYBT-213043-MESH](https://github.com/Infineon/TARGET_CYBT-213043-MESH), [CYBT-213043-EVAL](https://github.com/Infineon/TARGET_CYBT-213043-EVAL), [CYBT-223058-EVAL](https://github.com/Infineon/TARGET_CYBT-223058-EVAL), [CYBT-263065-EVAL](https://github.com/Infineon/TARGET_CYBT-263065-EVAL), [CYBT-273063-EVAL](https://github.com/Infineon/TARGET_CYBT-273063-EVAL)
+    - [CYW920819EVB-02](https://github.com/Infineon/TARGET_CYW920819EVB-02), [CYW920819M2EVB-01](https://github.com/Infineon/TARGET_CYW920819M2EVB-01), [CYBT-213043-EVAL](https://github.com/Infineon/TARGET_CYBT-213043-EVAL), [CYBT-223058-EVAL](https://github.com/Infineon/TARGET_CYBT-223058-EVAL), [CYBT-263065-EVAL](https://github.com/Infineon/TARGET_CYBT-263065-EVAL), [CYBT-273063-EVAL](https://github.com/Infineon/TARGET_CYBT-273063-EVAL)
 - [CYW20820A1 chip](https://github.com/Infineon/20820A1)
     - [CYW920820EVB-02](https://github.com/Infineon/TARGET_CYW920820EVB-02), [CYW989820M2EVB-01](https://github.com/Infineon/TARGET_CYW989820M2EVB-01), [CYW989820EVB-01](https://github.com/Infineon/TARGET_CYW989820EVB-01), [CYBT-243053-EVAL](https://github.com/Infineon/TARGET_CYBT-243053-EVAL), [CYBT-253059-EVAL](https://github.com/Infineon/TARGET_CYBT-253059-EVAL), [CYW920820M2EVB-01](https://github.com/Infineon/TARGET_CYW920820M2EVB-01), [Vela-IF820-INT-ANT-DVK](https://github.com/Infineon/TARGET_Vela-IF820-INT-ANT-DVK), [Vela-IF820-EXT-ANT-DVK](https://github.com/Infineon/TARGET_Vela-IF820-EXT-ANT-DVK)
 - [CYW20721B2 chip](https://github.com/Infineon/20721B2)

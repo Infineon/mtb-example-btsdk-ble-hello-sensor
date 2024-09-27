@@ -113,13 +113,32 @@ ifeq ($(ENABLE_DEBUG),1)
 CY_APP_DEFINES+=-DENABLE_DEBUG=1
 endif
 
-CY_APP_DEFINES+=\
-    -DWICED_BT_TRACE_ENABLE -DDEV_NAME='"$(APP_NAME)"'
+CY_APP_DEFINES+=-DWICED_BT_TRACE_ENABLE
+CY_APP_DEFINES+=-DDEV_NAME='"$(APP_NAME)"'
+
+# Enable Below Macro to get HCI Traces
+# CY_APP_DEFINES+=-DENABLE_HCI_TRACE
 
 #
 # Components (middleware libraries)
 #
 COMPONENTS +=bsp_design_modus
+
+# nvram_emulation library is provided to support nvram emulation in RAM for designs without flash
+# Use library-manager to add the 'btsdk-drivers' library to app if the TARGET device supports nvram emulation
+# disabled by default, set to 1 or override on command line to enable
+# note that some configurations are adjusted to support demonstrating the nvram_emulation
+# these include transport_cfg, max_number_of_buffer_pools, and rpa_refresh_timeout
+NVRAM_EMULATION=0
+# optionally use HCI communication with a Host MCU as backup storage if NVRAM_EMULATION_HCI is set to 1
+NVRAM_EMULATION_HCI=0
+
+ifeq ($(NVRAM_EMULATION),1)
+COMPONENTS +=nvram_emulation
+ifeq ($(NVRAM_EMULATION_HCI),1)
+CY_APP_DEFINES+=-DNVRAM_EMULATION_HCI=1
+endif
+endif
 
 ################################################################################
 # Paths
