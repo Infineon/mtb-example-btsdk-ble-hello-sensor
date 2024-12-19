@@ -413,9 +413,9 @@ static void hello_sensor_interrupt_config (void)
 #if defined(CYW43022C1)
     /* Configure buttons available on the platform */
     // Set WICED_BT_GPIO_04 (J4, pin SDA) as User button (J12, pin 1) connected to
-    wiced_hal_gpio_select_function(WICED_PLATFORM_BUTTON_1, WICED_GPIO);
-    wiced_hal_gpio_configure_pin(WICED_PLATFORM_BUTTON_1, GPIO_INPUT_ENABLE | WICED_GPIO_EN_INT_RISING_EDGE, 1);
-    wiced_hal_gpio_register_pin_for_interrupt(WICED_PLATFORM_BUTTON_1, hello_sensor_interrupt_handler, NULL);
+    wiced_hal_gpio_select_function(WICED_GPIO_PIN_BUTTON_1, WICED_GPIO);
+    wiced_hal_gpio_configure_pin(WICED_GPIO_PIN_BUTTON_1, GPIO_INPUT_ENABLE | WICED_GPIO_EN_INT_RISING_EDGE, 1);
+    wiced_hal_gpio_register_pin_for_interrupt(WICED_GPIO_PIN_BUTTON_1, hello_sensor_interrupt_handler, NULL);
 #else
     /* Configure buttons available on the platform */
     wiced_platform_register_button_callback( WICED_PLATFORM_BUTTON_1, hello_sensor_interrupt_handler, NULL, WICED_PLATFORM_BUTTON_RISING_EDGE);
